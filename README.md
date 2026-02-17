@@ -1,44 +1,73 @@
-# assistly
+# assistly 🤖
 
-Single-owner social media assistant bot scaffold for Twitter (X), Telegram, and LinkedIn, optimized for OpenClaw webhook delivery.
+Assistly is a **single-owner social media AI assistant backend** that receives commands via OpenClaw webhook events and helps run content operations across:
+- Twitter (X)
+- Telegram
+- LinkedIn
 
-## Implemented optimization set
-1. OpenClaw message envelope support (`user_id`, `channel`, `thread_id`, `message_id`, `timestamp`, `locale`, `timezone`, `trace_id`).
-2. Verified webhook security (HMAC signature + timestamp skew + nonce replay protection).
-3. Persistent state model (sessions, approvals, idempotency, nonces, metrics).
-4. Policy layer for command allow/deny + approval-required command classes.
-5. Structured command pipeline (`parse -> authorize -> validate -> execute -> confirm -> log`).
-6. Approval gates for risky commands (`/delete`, `/edit`, `/post all`).
-7. Observability with trace IDs, latency, request/error/command counters, and audit logs.
-8. Idempotency protection keyed by `channel + message_id + command`.
-9. Prompt/config/build versioning surfaced in status/audit responses.
-10. Regression tests for auth lockout, signature replay, schedule conflict, content safety, idempotency, and partial post failures.
+## 🎯 What This App Really Does
 
-## Key files
-- Runtime config: `config/runtime_config.json`
-- Env template: `.env.example`
-- Webhook server: `src/server.js`
-- Bot core: `src/bot.js`
-- Command pipeline: `src/commands.js`
-- OpenClaw signature verifier: `src/security/openclaw.js`
-- Policy engine: `src/security/policy.js`
-- Persistent state: `src/services/state.js`
+Assistly is not just a chatbot. It is an execution engine for social media workflows:
+- Authenticates one real owner only
+- Accepts slash commands like `/post`, `/schedule`, `/analytics`, `/queue`
+- Applies policy checks before actions
+- Queues and retries failed posts
+- Logs actions for audit and security review
+- Protects against replay attacks and duplicate command execution
 
-## Configure
-Set environment variables from `.env.example` in production, especially:
+## 🧠 Core Capabilities
+
+- OpenClaw-style event envelope support
+- Webhook signature verification (HMAC + nonce + timestamp window)
+- Session state and owner-only auth lockout model
+- Approval gates for risky commands (`/delete`, `/edit`, `/post all`)
+- Idempotency protection (`channel + message_id + command`)
+- Content safety pre-checks (basic PII/injection phrase detection)
+- Persistent queue/log/state on disk
+- Metrics and audit visibility (`/audit`, `/logs`)
+
+## 🛡️ Security Model
+
+- Single-owner authority (`OWNER_ID` + passphrase)
+- Rejects unauthorized users even with command knowledge
+- Detects and logs suspicious prompt injection patterns
+- Optional strict webhook signature enforcement:
+  - `x-openclaw-timestamp`
+  - `x-openclaw-nonce`
+  - `x-openclaw-signature`
+
+## 🗂️ Project Structure
+
+- `src/server.js`: HTTP webhook entrypoint
+- `src/bot.js`: orchestration + auth/session + pipeline integration
+- `src/commands.js`: command parsing and execution flow
+- `src/security/openclaw.js`: signature and replay protection
+- `src/security/policy.js`: action policy and approvals
+- `src/services/state.js`: persistent sessions/approvals/idempotency/metrics
+- `src/services/queue.js`: scheduling/retry logic
+- `config/runtime_config.json`: runtime defaults and system settings
+- `.env.example`: production environment variables template
+
+## ⚙️ Setup
+
+1. Configure environment variables (see `.env.example`).
+2. At minimum set:
 - `OWNER_ID`
 - `OWNER_PASSPHRASE`
 - `OPENCLAW_WEBHOOK_SECRET`
-- `OPENCLAW_ENFORCE_SIGNATURE=true`
-- Platform credentials for Twitter/Telegram/LinkedIn
+- `OPENCLAW_ENFORCE_SIGNATURE=true` (recommended for production)
+- Twitter/Telegram/LinkedIn credentials
 
-## Run
+## 🚀 Run
+
 ```bash
 npm start
 ```
 
-## OpenClaw webhook contract
-`POST /webhook` JSON body example:
+## 🔌 OpenClaw Webhook Payload Example
+
+`POST /webhook`
+
 ```json
 {
   "user_id": "owner_user_1",
@@ -53,12 +82,8 @@ npm start
 }
 ```
 
-Signature headers (when enforced):
-- `x-openclaw-timestamp`
-- `x-openclaw-nonce`
-- `x-openclaw-signature` = `hex(hmac_sha256(secret, "timestamp.nonce.rawBody"))`
+## ✅ Test
 
-## Test
 ```bash
 npm test
 ```
