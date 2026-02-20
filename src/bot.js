@@ -79,8 +79,18 @@ export class SocialMediaBot {
   async readinessSnapshot() {
     const lock = await this.stateService.currentWorkerLock();
     const queueItems = await this.queue.list();
+    let dbReady = true;
+    if (this.backend) {
+      try {
+        await this.backend.pool.query('SELECT 1');
+      } catch {
+        dbReady = false;
+      }
+    }
     return {
-      ready: true,
+      ready: dbReady,
+      storage: this.backend ? 'postgres' : 'json',
+      dbConnected: this.backend ? dbReady : undefined,
       queueSize: queueItems.length,
       queueScheduled: queueItems.filter((x) => x.status === 'scheduled').length,
       queueRetrying: queueItems.filter((x) => x.status === 'retrying').length,

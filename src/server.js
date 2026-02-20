@@ -21,8 +21,14 @@ const rateLimiter = new FixedWindowRateLimiter({
   windowMs: config.openclaw.rateLimitWindowSeconds * 1000
 });
 
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Cache-Control': 'no-store'
+};
+
 function sendJson(res, statusCode, body) {
-  res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.writeHead(statusCode, { ...SECURITY_HEADERS, 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(body));
 }
 
@@ -71,7 +77,7 @@ const server = http.createServer(async (req, res) => {
       '# TYPE assistly_latency_ms_avg gauge',
       `assistly_latency_ms_avg ${latencyAvg.toFixed(2)}`
     ].join('\n');
-    res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
+    res.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
     return res.end(`${body}\n`);
   }
 
@@ -83,7 +89,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const rate = rateLimiter.consume(ip);
     if (!rate.allowed) {
-      bot.alertService.notify('security.rate_limited', { ip });
+      await bot.alertService.notify('security.rate_limited', { ip });
       res.setHeader('Retry-After', Math.max(1, Math.ceil((rate.resetMs - Date.now()) / 1000)));
       return sendError(res, 429, 'rate_limit_exceeded', 'Rate limit exceeded.');
     }
@@ -92,7 +98,7 @@ const server = http.createServer(async (req, res) => {
     const headers = toHeaderMap(req.headers);
     const verification = await verifyOpenClaw({ headers, rawBody: body });
     if (!verification.ok) {
-      bot.alertService.notify('security.invalid_signature', {
+      await bot.alertService.notify('security.invalid_signature', {
         reason: verification.reason,
         ip
       });

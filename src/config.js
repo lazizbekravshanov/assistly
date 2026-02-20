@@ -209,6 +209,16 @@ function validateConfig(cfg) {
   if (!Number.isFinite(cfg.schedule.workerLockSeconds) || cfg.schedule.workerLockSeconds <= 0) {
     throw new Error('SCHEDULE_WORKER_LOCK_SECONDS must be a positive number.');
   }
+  for (const key of ['postDataDays', 'logsDays', 'approvalsDays', 'idempotencyDays', 'noncesDays']) {
+    if (!Number.isFinite(cfg.retention[key]) || cfg.retention[key] <= 0) {
+      throw new Error(`RETENTION_${key.replace(/([A-Z])/g, '_$1').toUpperCase()} must be a positive number.`);
+    }
+  }
+  for (const key of ['maxApprovals', 'maxIdempotency']) {
+    if (!Number.isFinite(cfg.retention[key]) || cfg.retention[key] < 1) {
+      throw new Error(`RETENTION_${key.replace(/([A-Z])/g, '_$1').toUpperCase()} must be >= 1.`);
+    }
+  }
 }
 
 export const config = mergeConfig(fileConfig);

@@ -56,7 +56,8 @@ export class JsonFileStore {
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
       return JSON.parse(raw);
-    } catch {
+    } catch (error) {
+      console.error(`store: failed to parse ${filePath}, using fallback: ${error.message}`);
       return fallback;
     }
   }

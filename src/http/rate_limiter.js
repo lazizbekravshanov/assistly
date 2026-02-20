@@ -4,7 +4,7 @@ export class FixedWindowRateLimiter {
     this.windowMs = windowMs;
     this.maxKeys = maxKeys;
     this.windows = new Map();
-    this.lastPurge = Date.now();
+    this.lastPurge = 0;
   }
 
   consume(key, nowMs = Date.now()) {
