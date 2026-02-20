@@ -38,10 +38,10 @@ export function buildOpenClawVerifier({ secret, maxSkewSeconds, enforceSignature
       return { ok: false, reason: 'timestamp_out_of_window' };
     }
 
-    await stateService.pruneNonces(nowMs - maxSkewSeconds * 1000);
     if (await stateService.seenNonce(nonce)) {
       return { ok: false, reason: 'replay_detected' };
     }
+    await stateService.pruneNonces(nowMs - maxSkewSeconds * 1000);
 
     const payload = `${timestamp}.${nonce}.${rawBody}`;
     const valid = secrets.some((candidate) => {

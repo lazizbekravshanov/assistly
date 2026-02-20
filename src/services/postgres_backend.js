@@ -46,12 +46,16 @@ function rowToQueueItem(row) {
 }
 
 export class PostgresBackend {
-  constructor({ databaseUrl, retryIntervalMinutes = 5, maxRetries = 3 }) {
-    this.pool = new Pool({ connectionString: databaseUrl });
+  constructor({ databaseUrl, retryIntervalMinutes = 5, maxRetries = 3, poolSize = 10 }) {
+    this.pool = new Pool({ connectionString: databaseUrl, max: poolSize });
     this.retryIntervalMs = retryIntervalMinutes * 60 * 1000;
     this.maxRetries = maxRetries;
     this.usesDatabaseLock = true;
     this.initPromise = null;
+  }
+
+  async close() {
+    await this.pool.end();
   }
 
   async #init() {
@@ -112,6 +116,27 @@ export class PostgresBackend {
         replayed_at TIMESTAMPTZ NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      CREATE INDEX IF NOT EXISTS idx_queue_due
+        ON assistly_queue_jobs (scheduled_at, next_retry_at)
+        WHERE status IN ('scheduled', 'retrying');
+
+      CREATE INDEX IF NOT EXISTS idx_queue_conflict
+        ON assistly_queue_jobs (platform, scheduled_at)
+        WHERE status IN ('scheduled', 'retrying', 'processing');
+
+      CREATE INDEX IF NOT EXISTS idx_queue_dead_letter
+        ON assistly_queue_jobs (id)
+        WHERE status = 'dead_letter';
+
+      CREATE INDEX IF NOT EXISTS idx_approvals_created
+        ON assistly_approvals (created_at);
+
+      CREATE INDEX IF NOT EXISTS idx_idempotency_saved
+        ON assistly_idempotency (saved_at);
+
+      CREATE INDEX IF NOT EXISTS idx_nonces_timestamp
+        ON assistly_nonces (timestamp_ms);
     `);
     await this.initPromise;
   }
@@ -160,16 +185,15 @@ export class PostgresBackend {
   }
 
   async updateApproval(id, patch) {
-    const current = await this.getApproval(id);
-    if (!current) return null;
-    const merged = { ...current, ...patch };
-    await this.pool.query(
+    const result = await this.pool.query(
       `UPDATE assistly_approvals
-       SET status = $2, payload = $3::jsonb
-       WHERE id = $1`,
-      [id, merged.status || current.status, JSON.stringify(merged)]
+       SET status = COALESCE($2, status),
+           payload = payload || $3::jsonb
+       WHERE id = $1
+       RETURNING payload`,
+      [id, patch.status || null, JSON.stringify(patch)]
     );
-    return merged;
+    return result.rowCount > 0 ? result.rows[0].payload : null;
   }
 
   async setIdempotency(key, value, savedAt = new Date().toISOString()) {
@@ -236,19 +260,37 @@ export class PostgresBackend {
   }
 
   async incrementMetric(key, by = 1) {
-    const metrics = await this.#metrics();
-    metrics[key] = (metrics[key] || 0) + by;
-    await this.pool.query('UPDATE assistly_metrics SET payload = $1::jsonb, updated_at = NOW() WHERE id = 1', [JSON.stringify(metrics)]);
+    await this.#metrics();
+    await this.pool.query(
+      `UPDATE assistly_metrics
+       SET payload = jsonb_set(payload, $1::text[], to_jsonb((COALESCE((payload->>$2)::numeric, 0) + $3)::numeric)),
+           updated_at = NOW()
+       WHERE id = 1`,
+      [`{${key}}`, key, by]
+    );
   }
 
   async observeLatency(ms) {
-    const metrics = await this.#metrics();
-    const bucket = metrics.latencyMs || { count: 0, total: 0, max: 0 };
-    bucket.count += 1;
-    bucket.total += ms;
-    bucket.max = Math.max(bucket.max, ms);
-    metrics.latencyMs = bucket;
-    await this.pool.query('UPDATE assistly_metrics SET payload = $1::jsonb, updated_at = NOW() WHERE id = 1', [JSON.stringify(metrics)]);
+    await this.#metrics();
+    await this.pool.query(
+      `UPDATE assistly_metrics
+       SET payload = jsonb_set(
+         jsonb_set(
+           jsonb_set(
+             payload,
+             '{latencyMs,count}',
+             to_jsonb(COALESCE((payload->'latencyMs'->>'count')::numeric, 0) + 1)
+           ),
+           '{latencyMs,total}',
+           to_jsonb(COALESCE((payload->'latencyMs'->>'total')::numeric, 0) + $1)
+         ),
+         '{latencyMs,max}',
+         to_jsonb(GREATEST(COALESCE((payload->'latencyMs'->>'max')::numeric, 0), $1))
+       ),
+       updated_at = NOW()
+       WHERE id = 1`,
+      [ms]
+    );
   }
 
   async getMetrics() {
@@ -257,18 +299,19 @@ export class PostgresBackend {
 
   async acquireWorkerLock(ownerId, ttlMs, nowMs = Date.now()) {
     await this.#init();
-    const found = await this.pool.query('SELECT owner_id, expires_at FROM assistly_worker_lock WHERE id = 1');
-    if (found.rowCount === 0 || found.rows[0].expires_at <= nowMs || found.rows[0].owner_id === ownerId) {
-      await this.pool.query(
-        `INSERT INTO assistly_worker_lock (id, owner_id, acquired_at, expires_at)
-         VALUES (1, $1, $2, $3)
-         ON CONFLICT (id)
-         DO UPDATE SET owner_id = EXCLUDED.owner_id, acquired_at = EXCLUDED.acquired_at, expires_at = EXCLUDED.expires_at`,
-        [ownerId, nowMs, nowMs + ttlMs]
-      );
-      return true;
-    }
-    return false;
+    const result = await this.pool.query(
+      `INSERT INTO assistly_worker_lock (id, owner_id, acquired_at, expires_at)
+       VALUES (1, $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE
+         SET owner_id = EXCLUDED.owner_id,
+             acquired_at = EXCLUDED.acquired_at,
+             expires_at = EXCLUDED.expires_at
+         WHERE assistly_worker_lock.expires_at <= $2
+            OR assistly_worker_lock.owner_id = $1
+       RETURNING id`,
+      [ownerId, nowMs, nowMs + ttlMs]
+    );
+    return result.rowCount > 0;
   }
 
   async renewWorkerLock(ownerId, ttlMs, nowMs = Date.now()) {
@@ -312,9 +355,12 @@ export class PostgresBackend {
     return rowToQueueItem(inserted.rows[0]);
   }
 
-  async listQueue() {
+  async listQueue({ limit = 500, offset = 0 } = {}) {
     await this.#init();
-    const rows = await this.pool.query('SELECT * FROM assistly_queue_jobs ORDER BY id ASC');
+    const rows = await this.pool.query(
+      'SELECT * FROM assistly_queue_jobs ORDER BY id ASC LIMIT $1 OFFSET $2',
+      [limit, offset]
+    );
     return rows.rows.map(rowToQueueItem);
   }
 

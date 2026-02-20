@@ -1,8 +1,9 @@
 export class AlertService {
-  constructor({ enabled = false, webhookUrl = '', timeoutMs = 5000 } = {}) {
+  constructor({ enabled = false, webhookUrl = '', timeoutMs = 5000, logger = null } = {}) {
     this.enabled = enabled;
     this.webhookUrl = webhookUrl;
     this.timeoutMs = timeoutMs;
+    this.logger = logger;
   }
 
   async notify(type, payload = {}) {
@@ -21,11 +22,16 @@ export class AlertService {
         signal: controller.signal
       });
       return true;
-    } catch {
+    } catch (error) {
+      if (this.logger) {
+        this.logger.log('alert.delivery_failed', {
+          alertType: type,
+          error: error.message || 'unknown'
+        });
+      }
       return false;
     } finally {
       clearTimeout(timer);
     }
   }
 }
-

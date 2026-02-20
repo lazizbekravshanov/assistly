@@ -11,3 +11,4 @@ CREATE TABLE IF NOT EXISTS assistly_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_events_type_created ON assistly_events (event_type, created_at);

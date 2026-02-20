@@ -82,8 +82,9 @@ export class PostgresMirrorService {
         }
       }
       await client.query('COMMIT');
-    } catch (_error) {
+    } catch (error) {
       await client.query('ROLLBACK');
+      console.error('postgres_mirror flush error:', error.message);
     } finally {
       client.release();
     }

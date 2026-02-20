@@ -200,6 +200,15 @@ function validateConfig(cfg) {
   if (!['json', 'postgres'].includes(cfg.storage.engine)) {
     throw new Error('STORAGE_ENGINE must be either "json" or "postgres".');
   }
+  if (!Number.isFinite(cfg.bot.sessionTimeoutMinutes) || cfg.bot.sessionTimeoutMinutes <= 0) {
+    throw new Error('SESSION_TIMEOUT_MINUTES must be a positive number.');
+  }
+  if (!Number.isFinite(cfg.schedule.maxRetries) || cfg.schedule.maxRetries < 1) {
+    throw new Error('SCHEDULE_MAX_RETRIES must be >= 1.');
+  }
+  if (!Number.isFinite(cfg.schedule.workerLockSeconds) || cfg.schedule.workerLockSeconds <= 0) {
+    throw new Error('SCHEDULE_WORKER_LOCK_SECONDS must be a positive number.');
+  }
 }
 
 export const config = mergeConfig(fileConfig);

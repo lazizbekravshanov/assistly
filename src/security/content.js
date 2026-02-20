@@ -1,5 +1,5 @@
-const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const PHONE = /\+?\d[\d\s\-()]{7,}\d/g;
+const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+const PHONE = /\+?\d[\d\s\-()]{7,}\d/;
 
 export function scanContentSafety(text = '') {
   const flags = [];

@@ -66,7 +66,7 @@ export async function apiRequest({
 }
 
 export function assertConfigured(name, value) {
-  if (!value) {
+  if (!value || (typeof value === 'string' && value.trim() === '')) {
     throw new Error(`${name} is not configured`);
   }
 }

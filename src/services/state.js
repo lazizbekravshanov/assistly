@@ -10,6 +10,8 @@ export class StateService {
       maxIdempotencyKeys: retention.maxIdempotencyKeys ?? 10000
     };
     this.state = this.backend ? null : store.readState();
+    this.lastPruneMs = 0;
+    this.pruneIntervalMs = 60_000;
     if (!this.backend) this.#migrateState();
   }
 
@@ -152,6 +154,8 @@ export class StateService {
   }
 
   pruneRetention(nowMs = Date.now()) {
+    if (nowMs - this.lastPruneMs < this.pruneIntervalMs) return;
+    this.lastPruneMs = nowMs;
     if (this.backend) return this.backend.pruneRetention(nowMs, this.retention);
     let changed = false;
 

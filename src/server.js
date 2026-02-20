@@ -79,8 +79,8 @@ const server = http.createServer(async (req, res) => {
     return sendError(res, 404, 'not_found', 'Not found');
   }
 
+  const ip = req.socket.remoteAddress || 'unknown';
   try {
-    const ip = req.socket.remoteAddress || 'unknown';
     const rate = rateLimiter.consume(ip);
     if (!rate.allowed) {
       bot.alertService.notify('security.rate_limited', { ip });
@@ -119,6 +119,12 @@ const server = http.createServer(async (req, res) => {
     };
 
     const result = await bot.processEvent(envelope);
+    bot.logger.log('webhook.response', {
+      traceId: envelope.trace_id,
+      userId: envelope.user_id,
+      ok: result.ok,
+      statusCode: 200
+    });
     sendJson(res, 200, {
       ok: result.ok,
       trace_id: result.traceId,
@@ -127,8 +133,10 @@ const server = http.createServer(async (req, res) => {
     });
   } catch (error) {
     if (error?.code === 'payload_too_large') {
+      bot.logger.log('webhook.error', { error: 'payload_too_large', ip });
       return sendError(res, 413, 'payload_too_large', 'Payload too large.');
     }
+    bot.logger.log('webhook.error', { error: 'invalid_json', ip });
     sendError(res, 400, 'invalid_json', 'Invalid JSON payload.');
   }
 });
@@ -137,11 +145,19 @@ server.listen(PORT, () => {
   console.log(`assistly-social-bot listening on port ${PORT}`);
 });
 
-function shutdown(signal) {
-  server.close(() => {
+async function shutdown(signal) {
+  server.close(async () => {
+    try {
+      if (bot.backend) await bot.backend.close().catch(() => {});
+      if (bot.store?.mirror) await bot.store.mirror.close().catch(() => {});
+    } catch {}
     console.log(`assistly-social-bot shutdown complete (${signal})`);
     process.exit(0);
   });
+  setTimeout(() => {
+    console.log('assistly-social-bot forced shutdown after timeout');
+    process.exit(1);
+  }, 10_000).unref();
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));

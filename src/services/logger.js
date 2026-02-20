@@ -1,4 +1,4 @@
-const SECRET_KEYS = ['passphrase', 'token', 'secret', 'authorization', 'access'];
+const SECRET_KEYS = ['passphrase', 'token', 'secret', 'authorization', 'access', 'apikey', 'api_key', 'password', 'pwd', 'credential', 'private_key', 'privatekey'];
 
 function redact(value) {
   if (value === null || value === undefined) return value;

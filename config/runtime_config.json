@@ -2,8 +2,8 @@
   "owner": {
     "id": "owner_user_1",
     "name": "Owner",
-    "passphrase": "owner-passphrase-2026",
-    "sessionSecret": "owner-session-secret-2026",
+    "passphrase": "CHANGE-ME-set-via-OWNER_PASSPHRASE-env",
+    "sessionSecret": "CHANGE-ME-set-via-OWNER_SESSION_SECRET-env",
     "timezone": "America/New_York",
     "primaryLanguage": "English"
   },
@@ -17,7 +17,7 @@
     "buildVersion": "0.2.0"
   },
   "openclaw": {
-    "webhookSecret": "dev-openclaw-secret",
+    "webhookSecret": "CHANGE-ME-set-via-OPENCLAW_WEBHOOK_SECRET-env",
     "webhookSecrets": "",
     "maxSkewSeconds": 300,
     "maxBodyBytes": 1048576,
@@ -29,58 +29,33 @@
     "approvalRequiredCommands": ["/delete", "/edit", "/post-all"],
     "blockedCommands": []
   },
-  "voice": {
-    "baseTone": "confident, insightful, approachable",
-    "formality": 7,
-    "humorLevel": 3,
-    "emojiUsage": "minimal",
-    "perspective": "first_person",
-    "topics": ["AI", "startups", "productivity"],
-    "avoidTopics": ["politics", "religion"],
-    "signaturePhrases": ["build with intent", "clarity over noise"]
-  },
   "platforms": {
     "twitter": {
       "accessToken": "",
       "httpTimeoutMs": 10000,
       "httpRetries": 2,
-      "httpBackoffMs": 250,
-      "mentionCheckIntervalMinutes": 15
+      "httpBackoffMs": 250
     },
     "telegram": {
       "botToken": "",
       "channelId": "",
       "httpTimeoutMs": 10000,
       "httpRetries": 2,
-      "httpBackoffMs": 250,
-      "autoUnpinDays": 7,
-      "subscriberDropThresholdPercent": 5
+      "httpBackoffMs": 250
     },
     "linkedin": {
       "accessToken": "",
       "profileId": "",
       "httpTimeoutMs": 10000,
       "httpRetries": 2,
-      "httpBackoffMs": 250,
-      "commentCheckIntervalMinutes": 30
+      "httpBackoffMs": 250
     }
   },
   "schedule": {
     "minPostGapHours": 3,
-    "dailySummaryTime": "08:00",
     "retryIntervalMinutes": 5,
     "maxRetries": 3,
-    "workerLockSeconds": 45,
-    "autoPostCategories": ["daily_quotes", "scheduled_series"],
-    "weeklySchedule": {
-      "Monday": {"twitter": ["09:00", "18:00"], "telegram": ["10:00"], "linkedin": ["08:30"]},
-      "Tuesday": {"twitter": ["09:00", "18:00"], "telegram": ["10:00"], "linkedin": []},
-      "Wednesday": {"twitter": ["09:00", "18:00"], "telegram": ["10:00"], "linkedin": ["08:30"]},
-      "Thursday": {"twitter": ["09:00", "18:00"], "telegram": ["10:00"], "linkedin": []},
-      "Friday": {"twitter": ["09:00", "18:00"], "telegram": ["10:00"], "linkedin": ["08:30"]},
-      "Saturday": {"twitter": ["12:00"], "telegram": [], "linkedin": []},
-      "Sunday": {"twitter": [], "telegram": ["18:00"], "linkedin": []}
-    }
+    "workerLockSeconds": 45
   },
   "retention": {
     "postDataDays": 90,

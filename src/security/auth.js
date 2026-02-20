@@ -1,13 +1,17 @@
 import crypto from 'node:crypto';
 
 export class SessionAuth {
-  constructor({ passphrase, timeoutMinutes, ownerId, sessionSecret, logger, stateService }) {
+  constructor({ passphrase, timeoutMinutes, ownerId, sessionSecret, logger, stateService,
+    maxFailedAttempts = 5, failedWindowMinutes = 10, lockoutMinutes = 30 }) {
     this.passphrase = passphrase;
     this.timeoutMs = timeoutMinutes * 60 * 1000;
     this.ownerId = ownerId;
     this.sessionSecret = sessionSecret || passphrase;
     this.logger = logger;
     this.stateService = stateService;
+    this.maxFailedAttempts = maxFailedAttempts;
+    this.failedWindowMs = failedWindowMinutes * 60 * 1000;
+    this.lockoutMs = lockoutMinutes * 60 * 1000;
   }
 
   async #session(userId) {
@@ -71,7 +75,11 @@ export class SessionAuth {
       .createHmac('sha256', this.sessionSecret)
       .update(encoded)
       .digest('base64url');
-    if (providedSig !== expectedSig) return { ok: false, reason: 'bad_signature' };
+    const sigBuf = Buffer.from(providedSig, 'base64url');
+    const expBuf = Buffer.from(expectedSig, 'base64url');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return { ok: false, reason: 'bad_signature' };
+    }
 
     let payload;
     try {
@@ -120,10 +128,10 @@ export class SessionAuth {
     }
 
     session.failedAttempts.push(now);
-    session.failedAttempts = session.failedAttempts.filter((ts) => now - ts <= 10 * 60 * 1000);
+    session.failedAttempts = session.failedAttempts.filter((ts) => now - ts <= this.failedWindowMs);
 
-    if (session.failedAttempts.length >= 5) {
-      session.lockedUntil = now + 30 * 60 * 1000;
+    if (session.failedAttempts.length >= this.maxFailedAttempts) {
+      session.lockedUntil = now + this.lockoutMs;
       this.logger.log('auth.locked', {
         userId,
         until: new Date(session.lockedUntil).toISOString()

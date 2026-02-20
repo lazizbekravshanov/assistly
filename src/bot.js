@@ -53,7 +53,7 @@ export class SocialMediaBot {
       logger: this.logger,
       stateService: this.stateService
     });
-    this.alertService = new AlertService(config.alerts);
+    this.alertService = new AlertService({ ...config.alerts, logger: this.logger });
     this.policyEngine = new PolicyEngine(config.policy);
     this.queue = new PostQueue({
       retryIntervalMinutes: config.schedule.retryIntervalMinutes,
