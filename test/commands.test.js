@@ -182,3 +182,20 @@ test('scheduled post failures move to dead-letter after max retries', async () =
   assert.equal(queue.data.items[0].status, 'dead_letter');
   assert.ok(queue.data.items[0].deadLetterAt);
 });
+
+test('dlq list and replay flow works', async () => {
+  reset();
+  const bot = await authedBot();
+  await bot.processEvent(envelope({ text: '/schedule telegram 2026-02-18T09:00:00Z fail-once' }));
+  await bot.processDueQueue('2026-02-18T09:00:01.000Z');
+  await bot.processDueQueue('2026-02-18T09:06:00.000Z');
+  await bot.processDueQueue('2026-02-18T09:12:00.000Z');
+
+  const dlq = await bot.processEvent(envelope({ text: '/dlq list' }));
+  assert.equal(dlq.ok, true);
+  assert.equal(dlq.data.length, 1);
+
+  const replay = await bot.processEvent(envelope({ text: `/dlq replay ${dlq.data[0].id}` }));
+  assert.equal(replay.ok, true);
+  assert.equal(replay.data.status, 'scheduled');
+});

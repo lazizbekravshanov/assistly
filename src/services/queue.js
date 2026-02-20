@@ -6,11 +6,13 @@ function toMs(iso) {
 }
 
 export class PostQueue {
-  constructor({ retryIntervalMinutes = 5, maxRetries = 3, store } = {}) {
+  constructor({ retryIntervalMinutes = 5, maxRetries = 3, store, backend = null } = {}) {
     this.retryIntervalMs = retryIntervalMinutes * 60 * 1000;
     this.maxRetries = maxRetries;
+    this.backend = backend;
     this.store = store;
-    this.items = store ? store.readQueue() : [];
+    this.items = this.backend ? [] : (store ? store.readQueue() : []);
+    this.usesDatabaseLock = Boolean(this.backend?.usesDatabaseLock);
 
     const seen = this.items
       .map((item) => Number(String(item.id || '').replace('q_', '')))
@@ -21,10 +23,12 @@ export class PostQueue {
   }
 
   #persist() {
+    if (this.backend) return;
     if (this.store) this.store.writeQueue(this.items);
   }
 
   schedule(item) {
+    if (this.backend) return this.backend.schedule(item);
     const queued = {
       id: `q_${nextId++}`,
       status: 'scheduled',
@@ -38,10 +42,17 @@ export class PostQueue {
   }
 
   list() {
+    if (this.backend) return this.backend.listQueue();
     return [...this.items];
   }
 
+  get(id) {
+    if (this.backend) return this.backend.getQueueItem(id);
+    return this.items.find((item) => item.id === id) || null;
+  }
+
   findScheduleConflict({ platform, scheduledAt, minGapHours }) {
+    if (this.backend) return this.backend.findScheduleConflict({ platform, scheduledAt, minGapHours });
     const candidateMs = toMs(scheduledAt);
     if (!candidateMs) return null;
     const threshold = minGapHours * 60 * 60 * 1000;
@@ -60,6 +71,7 @@ export class PostQueue {
   }
 
   due(nowIso = new Date().toISOString()) {
+    if (this.backend) return this.backend.due(nowIso);
     return this.items.filter(
       (item) =>
         (item.status === 'scheduled' || item.status === 'retrying') &&
@@ -69,6 +81,7 @@ export class PostQueue {
   }
 
   markFailed(id, errorMessage, nowMs = Date.now()) {
+    if (this.backend) return this.backend.markFailed(id, errorMessage, nowMs);
     const item = this.items.find((x) => x.id === id);
     if (!item) return null;
 
@@ -90,6 +103,7 @@ export class PostQueue {
   }
 
   markPosted(id, remoteId, nowMs = Date.now()) {
+    if (this.backend) return this.backend.markPosted(id, remoteId, nowMs);
     const item = this.items.find((x) => x.id === id);
     if (!item) return null;
     item.status = 'posted';
@@ -101,6 +115,7 @@ export class PostQueue {
   }
 
   remove(id) {
+    if (this.backend) return this.backend.remove(id);
     const before = this.items.length;
     this.items = this.items.filter((x) => x.id !== id);
     const changed = this.items.length < before;
@@ -109,6 +124,23 @@ export class PostQueue {
   }
 
   deadLetters() {
+    if (this.backend) return this.backend.deadLetters();
     return this.items.filter((item) => item.status === 'dead_letter');
+  }
+
+  replayDeadLetter(id, scheduledAt = new Date().toISOString()) {
+    if (this.backend) return this.backend.replayDeadLetter(id, scheduledAt);
+    const item = this.items.find((x) => x.id === id && x.status === 'dead_letter');
+    if (!item) return null;
+    item.status = 'scheduled';
+    item.retries = 0;
+    item.nextRetryAt = null;
+    item.lastError = null;
+    item.deadLetterAt = null;
+    item.deadLetterReason = null;
+    item.scheduledAt = scheduledAt;
+    item.replayedAt = new Date().toISOString();
+    this.#persist();
+    return item;
   }
 }

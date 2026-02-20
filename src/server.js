@@ -38,20 +38,12 @@ function toHeaderMap(headers) {
   return out;
 }
 
-const scheduler = setInterval(async () => {
-  try {
-    await bot.processDueQueue();
-  } catch (_error) {
-    // Scheduler failures are logged during queue processing.
-  }
-}, 30 * 1000);
-
 const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/') {
     return sendJson(res, 200, {
       status: 'ok',
       message: bot.startupMessage(),
-      metrics: bot.metricsSnapshot(),
+      metrics: await bot.metricsSnapshot(),
       versions: config.versions
     });
   }
@@ -61,11 +53,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && req.url === '/readyz') {
-    return sendJson(res, 200, bot.readinessSnapshot());
+    return sendJson(res, 200, await bot.readinessSnapshot());
   }
 
   if (req.method === 'GET' && req.url === '/metrics') {
-    const metrics = bot.metricsSnapshot();
+    const metrics = await bot.metricsSnapshot();
     const latencyAvg = metrics.latencyMs.count > 0 ? metrics.latencyMs.total / metrics.latencyMs.count : 0;
     const body = [
       '# TYPE assistly_requests_total counter',
@@ -91,14 +83,19 @@ const server = http.createServer(async (req, res) => {
     const ip = req.socket.remoteAddress || 'unknown';
     const rate = rateLimiter.consume(ip);
     if (!rate.allowed) {
+      bot.alertService.notify('security.rate_limited', { ip });
       res.setHeader('Retry-After', Math.max(1, Math.ceil((rate.resetMs - Date.now()) / 1000)));
       return sendError(res, 429, 'rate_limit_exceeded', 'Rate limit exceeded.');
     }
 
     const body = await readRequestBody(req, { maxBytes: config.openclaw.maxBodyBytes });
     const headers = toHeaderMap(req.headers);
-    const verification = verifyOpenClaw({ headers, rawBody: body });
+    const verification = await verifyOpenClaw({ headers, rawBody: body });
     if (!verification.ok) {
+      bot.alertService.notify('security.invalid_signature', {
+        reason: verification.reason,
+        ip
+      });
       return sendError(res, 401, 'invalid_signature', 'Invalid webhook signature.', verification.reason);
     }
 
@@ -117,7 +114,8 @@ const server = http.createServer(async (req, res) => {
       locale: parsed.locale || 'en-US',
       timezone: parsed.timezone || config.owner.timezone,
       trace_id: parsed.trace_id || headers['x-openclaw-trace-id'] || null,
-      text: typeof parsed.text === 'string' ? parsed.text : ''
+      text: typeof parsed.text === 'string' ? parsed.text : '',
+      session_token: headers['x-assistly-admin-session'] || null
     };
 
     const result = await bot.processEvent(envelope);
@@ -140,7 +138,6 @@ server.listen(PORT, () => {
 });
 
 function shutdown(signal) {
-  clearInterval(scheduler);
   server.close(() => {
     console.log(`assistly-social-bot shutdown complete (${signal})`);
     process.exit(0);

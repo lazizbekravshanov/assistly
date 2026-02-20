@@ -35,6 +35,7 @@ test('accepts passphrase for owner and opens session', async () => {
   const result = await bot.processEvent(envelope({ text: config.owner.passphrase }));
   assert.equal(result.ok, true);
   assert.match(result.message, /Session active/);
+  assert.equal(typeof result.sessionToken, 'string');
 });
 
 test('rejects non-owner even with correct passphrase', async () => {
@@ -55,4 +56,20 @@ test('locks out after 5 failed attempts in window', async () => {
   const result = await bot.processEvent(envelope({ text: config.owner.passphrase }));
   assert.equal(result.ok, false);
   assert.equal(result.message, UNAUTHORIZED);
+});
+
+test('accepts signed session token to restore session', async () => {
+  reset();
+  const bot = new SocialMediaBot();
+  const login = await bot.processEvent(envelope({ text: config.owner.passphrase }));
+  const signoff = await bot.processEvent(envelope({ text: '/signoff' }));
+  assert.equal(signoff.ok, true);
+
+  const restored = await bot.processEvent(
+    envelope({
+      text: '/status',
+      session_token: login.sessionToken
+    })
+  );
+  assert.equal(restored.ok, true);
 });

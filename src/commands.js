@@ -1,10 +1,10 @@
 import { scanContentSafety } from './security/content.js';
 
-function nextApprovalId(stateService) {
+async function nextApprovalId(stateService) {
   let candidate = '';
   do {
     candidate = `appr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-  } while (stateService.getApproval(candidate));
+  } while (await stateService.getApproval(candidate));
   return candidate;
 }
 
@@ -76,7 +76,7 @@ async function executeAction(action, ctx) {
   const { auth, queue, logger, platformClients, config, stateService } = ctx;
 
   if (name === '/signoff') {
-    auth.signoff(ctx.envelope.user_id);
+    await auth.signoff(ctx.envelope.user_id);
     return { ok: true, message: 'Session ended.' };
   }
 
@@ -84,7 +84,7 @@ async function executeAction(action, ctx) {
     return {
       ok: true,
       data: {
-        authenticated: auth.isAuthenticated(ctx.envelope.user_id),
+        authenticated: await auth.isAuthenticated(ctx.envelope.user_id),
         timeoutMinutes: config.bot.sessionTimeoutMinutes,
         userId: ctx.envelope.user_id,
         ownerId: config.owner.id
@@ -93,9 +93,9 @@ async function executeAction(action, ctx) {
   }
 
   if (name === '/status') {
-    const queueItems = queue.list();
+    const queueItems = await queue.list();
     const deadLetters = queueItems.filter((x) => x.status === 'dead_letter').length;
-    const pendingApprovals = stateService.listApprovals().filter((a) => a.status === 'pending').length;
+    const pendingApprovals = (await stateService.listApprovals()).filter((a) => a.status === 'pending').length;
     return {
       ok: true,
       message: `Queue ${queueItems.length} items, ${deadLetters} dead-letter, ${pendingApprovals} approvals pending.`,
@@ -141,9 +141,9 @@ async function executeAction(action, ctx) {
     return {
       ok: true,
       data: {
-        metrics: stateService.getMetrics(),
+        metrics: await stateService.getMetrics(),
         versions: config.versions,
-        pendingApprovals: stateService.listApprovals().filter((a) => a.status === 'pending'),
+        pendingApprovals: (await stateService.listApprovals()).filter((a) => a.status === 'pending'),
         filters: { event: event || null, since: since || null, until: until || null, limit },
         recentEvents: logQuery.items,
         totalMatchingEvents: logQuery.total
@@ -154,7 +154,7 @@ async function executeAction(action, ctx) {
   if (name === '/queue') {
     const page = toInt(args[0], 1, 1, 100000);
     const pageSize = toInt(args[1], 20, 1, 200);
-    const items = queue.list();
+    const items = await queue.list();
     const offset = (page - 1) * pageSize;
     const paged = items.slice(offset, offset + pageSize);
     return {
@@ -167,6 +167,31 @@ async function executeAction(action, ctx) {
         items: paged
       }
     };
+  }
+
+  if (name === '/dlq') {
+    const [op = 'list', id] = args;
+    if (op === 'list') {
+      const items = await queue.deadLetters();
+      return {
+        ok: true,
+        message: `Dead-letter items: ${items.length}.`,
+        data: items
+      };
+    }
+
+    if (op === 'replay') {
+      if (!id) return { ok: false, message: 'Usage: /dlq replay [queue_id]' };
+      const replayed = await queue.replayDeadLetter(id, new Date().toISOString());
+      if (!replayed) return { ok: false, message: 'Dead-letter item not found.' };
+      logger.log('queue.dead_letter.replay', {
+        traceId: ctx.traceId,
+        queueId: id
+      });
+      return { ok: true, message: `Replayed ${id}.`, data: replayed };
+    }
+
+    return { ok: false, message: 'Usage: /dlq [list|replay]' };
   }
 
   if (name === '/draft') {
@@ -222,7 +247,7 @@ async function executeAction(action, ctx) {
       return { ok: false, message: `Unsupported platform: ${platform}` };
     }
 
-    const conflict = queue.findScheduleConflict({
+    const conflict = await queue.findScheduleConflict({
       platform,
       scheduledAt: normalizedTime,
       minGapHours: config.schedule.minPostGapHours
@@ -235,7 +260,7 @@ async function executeAction(action, ctx) {
     }
 
     const content = contentParts.join(' ').trim();
-    const item = queue.schedule({
+    const item = await queue.schedule({
       platform,
       scheduledAt: normalizedTime,
       content,
@@ -254,12 +279,12 @@ async function executeAction(action, ctx) {
     const [approvalId] = args;
     if (!approvalId) return { ok: false, message: 'Usage: /approve [approval_id]' };
 
-    const pending = stateService.getApproval(approvalId);
+    const pending = await stateService.getApproval(approvalId);
     if (!pending || pending.status !== 'pending') {
       return { ok: false, message: 'Pending approval not found.' };
     }
 
-    stateService.updateApproval(approvalId, {
+    await stateService.updateApproval(approvalId, {
       status: 'approved',
       approvedAt: new Date().toISOString()
     });
@@ -272,12 +297,12 @@ async function executeAction(action, ctx) {
     const [approvalId] = args;
     if (!approvalId) return { ok: false, message: 'Usage: /reject [approval_id]' };
 
-    const pending = stateService.getApproval(approvalId);
+    const pending = await stateService.getApproval(approvalId);
     if (!pending || pending.status !== 'pending') {
       return { ok: false, message: 'Pending approval not found.' };
     }
 
-    stateService.updateApproval(approvalId, {
+    await stateService.updateApproval(approvalId, {
       status: 'rejected',
       rejectedAt: new Date().toISOString()
     });
@@ -287,7 +312,7 @@ async function executeAction(action, ctx) {
   if (name === '/delete') {
     const id = args[0];
     if (!id) return { ok: false, message: 'Missing id.' };
-    const removed = queue.remove(id);
+    const removed = await queue.remove(id);
     return { ok: removed, message: removed ? 'Removed.' : 'Not found.' };
   }
 
@@ -327,11 +352,11 @@ export async function handleCommand(ctx) {
     return { ok: false, message: 'Unknown input. Use a slash command.' };
   }
 
-  stateService.incrementMetric('commandCount');
+  await stateService.incrementMetric('commandCount');
 
   const key = idempotencyKey(envelope, parsed.name);
   if (key) {
-    const cached = stateService.getIdempotency(key);
+    const cached = await stateService.getIdempotency(key);
     if (cached) {
       return { ...cached, idempotentReplay: true };
     }
@@ -362,8 +387,8 @@ export async function handleCommand(ctx) {
   };
 
   if (policyEngine.needsApproval(parsed.name, approvalContext) && parsed.name !== '/approve' && parsed.name !== '/reject') {
-    const approval = stateService.addApproval({
-      id: nextApprovalId(stateService),
+    const approval = await stateService.addApproval({
+      id: await nextApprovalId(stateService),
       status: 'pending',
       createdAt: new Date().toISOString(),
       command: parsed.name,
@@ -379,7 +404,7 @@ export async function handleCommand(ctx) {
       message: `Approval required. Run /approve ${approval.id} to execute.`
     };
 
-    if (key) stateService.setIdempotency(key, response);
+    if (key) await stateService.setIdempotency(key, response);
     return response;
   }
 
@@ -397,6 +422,6 @@ export async function handleCommand(ctx) {
     confirmation: result.ok ? summarizeForConfirm(parsed.name, result) : undefined
   };
 
-  if (key) stateService.setIdempotency(key, response);
+  if (key) await stateService.setIdempotency(key, response);
   return response;
 }

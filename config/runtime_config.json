@@ -3,6 +3,7 @@
     "id": "owner_user_1",
     "name": "Owner",
     "passphrase": "owner-passphrase-2026",
+    "sessionSecret": "owner-session-secret-2026",
     "timezone": "America/New_York",
     "primaryLanguage": "English"
   },
@@ -90,7 +91,14 @@
     "maxApprovals": 5000,
     "maxIdempotency": 10000
   },
+  "alerts": {
+    "enabled": false,
+    "webhookUrl": "",
+    "timeoutMs": 5000
+  },
   "storage": {
+    "engine": "json",
+    "databaseUrl": "",
     "dataDir": "data",
     "queueFile": "queue.json",
     "logsFile": "logs.json",

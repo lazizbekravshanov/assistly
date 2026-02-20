@@ -54,6 +54,7 @@ export class Logger {
 
     if (this.store) {
       this.store.writeLogs(this.entries);
+      this.store.mirror?.enqueueEvent(event, entry);
     }
 
     return entry;

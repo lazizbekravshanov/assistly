@@ -10,7 +10,7 @@ function reset() {
   fs.rmSync('.test-data', { recursive: true, force: true });
 }
 
-test('openclaw signature verifies and blocks replay nonce', () => {
+test('openclaw signature verifies and blocks replay nonce', async () => {
   reset();
   const store = new JsonFileStore({
     dataDir: '.test-data',
@@ -40,15 +40,15 @@ test('openclaw signature verifies and blocks replay nonce', () => {
     'x-openclaw-nonce': nonce
   };
 
-  const first = verifier({ headers, rawBody, nowMs: now });
+  const first = await verifier({ headers, rawBody, nowMs: now });
   assert.equal(first.ok, true);
 
-  const second = verifier({ headers, rawBody, nowMs: now + 1 });
+  const second = await verifier({ headers, rawBody, nowMs: now + 1 });
   assert.equal(second.ok, false);
   assert.equal(second.reason, 'replay_detected');
 });
 
-test('openclaw accepts rotated secrets list', () => {
+test('openclaw accepts rotated secrets list', async () => {
   reset();
   const store = new JsonFileStore({
     dataDir: '.test-data',
@@ -77,6 +77,6 @@ test('openclaw accepts rotated secrets list', () => {
     'x-openclaw-nonce': nonce
   };
 
-  const result = verifier({ headers, rawBody, nowMs: now });
+  const result = await verifier({ headers, rawBody, nowMs: now });
   assert.equal(result.ok, true);
 });

@@ -31,7 +31,14 @@ function mergeConfig(base) {
       id: fromEnv('OWNER_ID', base.owner.id),
       name: fromEnv('OWNER_NAME', base.owner.name),
       passphrase: fromEnv('OWNER_PASSPHRASE', base.owner.passphrase),
-      timezone: fromEnv('OWNER_TIMEZONE', base.owner.timezone)
+      timezone: fromEnv('OWNER_TIMEZONE', base.owner.timezone),
+      sessionSecret: fromEnv('OWNER_SESSION_SECRET', base.owner.sessionSecret || base.owner.passphrase)
+    },
+    alerts: {
+      ...base.alerts,
+      enabled: parseBool(fromEnv('ALERTS_ENABLED', base.alerts.enabled), base.alerts.enabled),
+      webhookUrl: fromEnv('ALERTS_WEBHOOK_URL', base.alerts.webhookUrl),
+      timeoutMs: parseNumber(fromEnv('ALERTS_TIMEOUT_MS', base.alerts.timeoutMs), base.alerts.timeoutMs)
     },
     bot: {
       ...base.bot,
@@ -154,6 +161,8 @@ function mergeConfig(base) {
     },
     storage: {
       ...base.storage,
+      engine: fromEnv('STORAGE_ENGINE', base.storage.engine),
+      databaseUrl: fromEnv('DATABASE_URL', base.storage.databaseUrl),
       dataDir: fromEnv('DATA_DIR', base.storage.dataDir),
       queueFile: fromEnv('QUEUE_FILE', base.storage.queueFile),
       logsFile: fromEnv('LOGS_FILE', base.storage.logsFile),
@@ -181,6 +190,15 @@ function validateConfig(cfg) {
   }
   if (!Number.isFinite(cfg.openclaw.rateLimitMaxRequests) || cfg.openclaw.rateLimitMaxRequests <= 0) {
     throw new Error('OPENCLAW_RATE_LIMIT_MAX_REQUESTS must be a positive number.');
+  }
+  if (!cfg.owner.sessionSecret) {
+    throw new Error('Missing OWNER_SESSION_SECRET.');
+  }
+  if (cfg.storage.engine === 'postgres' && !cfg.storage.databaseUrl) {
+    throw new Error('STORAGE_ENGINE=postgres requires DATABASE_URL.');
+  }
+  if (!['json', 'postgres'].includes(cfg.storage.engine)) {
+    throw new Error('STORAGE_ENGINE must be either "json" or "postgres".');
   }
 }
 

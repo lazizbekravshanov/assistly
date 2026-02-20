@@ -3,13 +3,15 @@ import { SessionAuth } from './security/auth.js';
 import { hasInjectionRisk } from './security/injection.js';
 import { Logger } from './services/logger.js';
 import { PostQueue } from './services/queue.js';
-import { JsonFileStore } from './services/store.js';
+import { createStore } from './services/store.js';
 import { StateService } from './services/state.js';
 import { PolicyEngine } from './security/policy.js';
 import { TwitterClient } from './platforms/twitter.js';
 import { TelegramClient } from './platforms/telegram.js';
 import { LinkedInClient } from './platforms/linkedin.js';
 import { handleCommand } from './commands.js';
+import { AlertService } from './services/alerts.js';
+import { PostgresBackend } from './services/postgres_backend.js';
 
 const UNAUTHORIZED = '⛔ Unauthorized. This bot operates under single-owner authority.';
 
@@ -20,9 +22,17 @@ function traceId() {
 export class SocialMediaBot {
   constructor({ platformClients } = {}) {
     this.instanceId = `bot_${Math.random().toString(36).slice(2, 10)}`;
-    this.store = new JsonFileStore(config.storage);
+    this.backend = config.storage.engine === 'postgres'
+      ? new PostgresBackend({
+        databaseUrl: config.storage.databaseUrl,
+        retryIntervalMinutes: config.schedule.retryIntervalMinutes,
+        maxRetries: config.schedule.maxRetries
+      })
+      : null;
+    this.store = createStore(config.storage);
     this.stateService = new StateService({
       store: this.store,
+      backend: this.backend,
       retention: {
         approvalsMaxAgeDays: config.retention.approvalsDays,
         idempotencyMaxAgeDays: config.retention.idempotencyDays,
@@ -39,14 +49,17 @@ export class SocialMediaBot {
       passphrase: config.owner.passphrase,
       timeoutMinutes: config.bot.sessionTimeoutMinutes,
       ownerId: config.owner.id,
+      sessionSecret: config.owner.sessionSecret,
       logger: this.logger,
       stateService: this.stateService
     });
+    this.alertService = new AlertService(config.alerts);
     this.policyEngine = new PolicyEngine(config.policy);
     this.queue = new PostQueue({
       retryIntervalMinutes: config.schedule.retryIntervalMinutes,
       maxRetries: config.schedule.maxRetries,
-      store: this.store
+      store: this.store,
+      backend: this.backend
     });
     this.platformClients = platformClients || {
       twitter: new TwitterClient(config.platforms.twitter),
@@ -59,13 +72,13 @@ export class SocialMediaBot {
     return `${config.bot.name} is online. 🔒 Please authenticate to proceed.`;
   }
 
-  metricsSnapshot() {
+  async metricsSnapshot() {
     return this.stateService.getMetrics();
   }
 
-  readinessSnapshot() {
-    const lock = this.stateService.currentWorkerLock();
-    const queueItems = this.queue.list();
+  async readinessSnapshot() {
+    const lock = await this.stateService.currentWorkerLock();
+    const queueItems = await this.queue.list();
     return {
       ready: true,
       queueSize: queueItems.length,
@@ -77,31 +90,35 @@ export class SocialMediaBot {
   }
 
   async processDueQueue(nowIso = new Date().toISOString()) {
-    this.stateService.pruneRetention();
+    await this.stateService.pruneRetention();
     const nowMs = Date.parse(nowIso);
     const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
     const lockTtlMs = config.schedule.workerLockSeconds * 1000;
-    const lockAcquired = this.stateService.acquireWorkerLock(this.instanceId, lockTtlMs, safeNowMs);
-    if (!lockAcquired) {
-      this.logger.log('queue.lock.skipped', { instanceId: this.instanceId });
-      return [];
+    if (!this.queue.usesDatabaseLock) {
+      const lockAcquired = await this.stateService.acquireWorkerLock(this.instanceId, lockTtlMs, safeNowMs);
+      if (!lockAcquired) {
+        this.logger.log('queue.lock.skipped', { instanceId: this.instanceId });
+        return [];
+      }
     }
 
-    const dueItems = this.queue.due(nowIso);
+    const dueItems = await this.queue.due(nowIso);
     const results = [];
 
     try {
       for (const item of dueItems) {
-        this.stateService.renewWorkerLock(this.instanceId, lockTtlMs, safeNowMs);
+        if (!this.queue.usesDatabaseLock) {
+          await this.stateService.renewWorkerLock(this.instanceId, lockTtlMs, safeNowMs);
+        }
         const client = this.platformClients[item.platform];
         if (!client) {
-          this.queue.markFailed(item.id, `Unsupported platform: ${item.platform}`);
+          await this.queue.markFailed(item.id, `Unsupported platform: ${item.platform}`);
           continue;
         }
 
         try {
           const posted = await client.post(item.content);
-          this.queue.markPosted(item.id, posted.id, safeNowMs);
+          await this.queue.markPosted(item.id, posted.id, safeNowMs);
           this.logger.log('post.published.scheduled', {
             queueId: item.id,
             platform: item.platform,
@@ -110,7 +127,7 @@ export class SocialMediaBot {
           });
           results.push({ id: item.id, status: 'posted', remoteId: posted.id });
         } catch (error) {
-          const failed = this.queue.markFailed(item.id, error.message, safeNowMs);
+          const failed = await this.queue.markFailed(item.id, error.message, safeNowMs);
           this.logger.log('post.failed', {
             queueId: item.id,
             platform: item.platform,
@@ -119,21 +136,30 @@ export class SocialMediaBot {
             apiStatus: 500,
             deadLetter: failed?.status === 'dead_letter'
           });
+          if (failed?.status === 'dead_letter') {
+            await this.alertService.notify('queue.dead_letter', {
+              queueId: item.id,
+              platform: item.platform,
+              error: error.message
+            });
+          }
           results.push({ id: item.id, status: failed?.status || 'failed', error: error.message });
         }
       }
 
       return results;
     } finally {
-      this.stateService.releaseWorkerLock(this.instanceId);
+      if (!this.queue.usesDatabaseLock) {
+        await this.stateService.releaseWorkerLock(this.instanceId);
+      }
     }
   }
 
   async processEvent(envelope) {
     const started = Date.now();
     const reqTraceId = envelope.trace_id || traceId();
-    this.stateService.pruneRetention();
-    this.stateService.incrementMetric('requestCount');
+    await this.stateService.pruneRetention();
+    await this.stateService.incrementMetric('requestCount');
 
     const incoming = {
       user_id: envelope.user_id || 'unknown',
@@ -143,7 +169,8 @@ export class SocialMediaBot {
       timestamp: envelope.timestamp || new Date().toISOString(),
       locale: envelope.locale || 'en-US',
       timezone: envelope.timezone || config.owner.timezone,
-      text: typeof envelope.text === 'string' ? envelope.text : ''
+      text: typeof envelope.text === 'string' ? envelope.text : '',
+      session_token: typeof envelope.session_token === 'string' ? envelope.session_token : null
     };
 
     if (hasInjectionRisk(incoming.text)) {
@@ -155,33 +182,40 @@ export class SocialMediaBot {
     }
 
     const now = Date.now();
-    if (this.auth.isLocked(incoming.user_id, now)) {
-      this.stateService.incrementMetric('errorCount');
+    if (incoming.session_token) {
+      await this.auth.establishSessionFromToken(incoming.user_id, incoming.session_token, now);
+    }
+    if (await this.auth.isLocked(incoming.user_id, now)) {
+      await this.stateService.incrementMetric('errorCount');
       return { ok: false, traceId: reqTraceId, message: UNAUTHORIZED };
     }
 
-    if (!this.auth.isAuthenticated(incoming.user_id, now)) {
-      const authResult = this.auth.authenticate({
+    if (!(await this.auth.isAuthenticated(incoming.user_id, now))) {
+      const authResult = await this.auth.authenticate({
         userId: incoming.user_id,
         candidate: incoming.text,
         now
       });
       if (!authResult.ok) {
-        this.stateService.incrementMetric('errorCount');
+        if (authResult.reason === 'locked') {
+          await this.alertService.notify('auth.locked', { userId: incoming.user_id, traceId: reqTraceId });
+        }
+        await this.stateService.incrementMetric('errorCount');
         return { ok: false, traceId: reqTraceId, message: UNAUTHORIZED };
       }
 
       const latencyMs = Date.now() - started;
-      this.stateService.observeLatency(latencyMs);
+      await this.stateService.observeLatency(latencyMs);
       return {
         ok: true,
         traceId: reqTraceId,
         message: `✅ Welcome back, ${config.owner.name}. Session active. Ready. Send a command or content to get started.`,
+        sessionToken: authResult.sessionToken,
         versions: config.versions
       };
     }
 
-    this.auth.touch(incoming.user_id, now);
+    await this.auth.touch(incoming.user_id, now);
 
     const result = await handleCommand({
       envelope: incoming,
@@ -196,8 +230,8 @@ export class SocialMediaBot {
     });
 
     const latencyMs = Date.now() - started;
-    this.stateService.observeLatency(latencyMs);
-    if (!result.ok) this.stateService.incrementMetric('errorCount');
+    await this.stateService.observeLatency(latencyMs);
+    if (!result.ok) await this.stateService.incrementMetric('errorCount');
 
     return {
       ...result,

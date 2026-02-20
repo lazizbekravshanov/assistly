@@ -5,7 +5,8 @@ const requiredVars = [
   'OPENCLAW_WEBHOOK_SECRET',
   'OPENCLAW_ENFORCE_SIGNATURE',
   'OPENCLAW_RATE_LIMIT_MAX_REQUESTS',
-  'OPENCLAW_RATE_LIMIT_WINDOW_SECONDS'
+  'OPENCLAW_RATE_LIMIT_WINDOW_SECONDS',
+  'OWNER_SESSION_SECRET'
 ];
 
 const missing = requiredVars.filter((name) => !envExample.includes(`${name}=`));
@@ -15,4 +16,3 @@ if (missing.length > 0) {
 }
 
 console.log('security check passed');
-

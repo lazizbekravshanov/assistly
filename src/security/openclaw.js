@@ -15,7 +15,7 @@ export function buildOpenClawVerifier({ secret, maxSkewSeconds, enforceSignature
       .map((item) => item.trim())
       .filter(Boolean);
 
-  return function verify({ headers, rawBody, nowMs = Date.now() }) {
+  return async function verify({ headers, rawBody, nowMs = Date.now() }) {
     if (!enforceSignature) {
       return { ok: true };
     }
@@ -38,8 +38,8 @@ export function buildOpenClawVerifier({ secret, maxSkewSeconds, enforceSignature
       return { ok: false, reason: 'timestamp_out_of_window' };
     }
 
-    stateService.pruneNonces(nowMs - maxSkewSeconds * 1000);
-    if (stateService.seenNonce(nonce)) {
+    await stateService.pruneNonces(nowMs - maxSkewSeconds * 1000);
+    if (await stateService.seenNonce(nonce)) {
       return { ok: false, reason: 'replay_detected' };
     }
 
@@ -53,7 +53,7 @@ export function buildOpenClawVerifier({ secret, maxSkewSeconds, enforceSignature
       return { ok: false, reason: 'signature_mismatch' };
     }
 
-    stateService.registerNonce(nonce, nowMs);
+    await stateService.registerNonce(nonce, nowMs);
     return { ok: true };
   };
 }

@@ -1,6 +1,7 @@
 export class StateService {
-  constructor({ store, retention = {} }) {
+  constructor({ store, retention = {}, backend = null }) {
     this.store = store;
+    this.backend = backend;
     this.retention = {
       approvalsMaxAgeDays: retention.approvalsMaxAgeDays ?? 30,
       idempotencyMaxAgeDays: retention.idempotencyMaxAgeDays ?? 14,
@@ -8,11 +9,12 @@ export class StateService {
       maxApprovals: retention.maxApprovals ?? 5000,
       maxIdempotencyKeys: retention.maxIdempotencyKeys ?? 10000
     };
-    this.state = store.readState();
-    this.#migrateState();
+    this.state = this.backend ? null : store.readState();
+    if (!this.backend) this.#migrateState();
   }
 
   #persist() {
+    if (this.backend) return;
     this.store.writeState(this.state);
   }
 
@@ -63,6 +65,7 @@ export class StateService {
   }
 
   getSession(userId) {
+    if (this.backend) return this.backend.getSession(userId);
     if (!this.state.sessions[userId]) {
       this.state.sessions[userId] = {
         authenticatedAt: null,
@@ -78,25 +81,30 @@ export class StateService {
   }
 
   saveSession(userId, session) {
+    if (this.backend) return this.backend.saveSession(userId, session);
     this.state.sessions[userId] = session;
     this.#persist();
   }
 
   addApproval(approval) {
+    if (this.backend) return this.backend.addApproval(approval);
     this.state.approvals.push(approval);
     this.#persist();
     return approval;
   }
 
   getApproval(id) {
+    if (this.backend) return this.backend.getApproval(id);
     return this.state.approvals.find((a) => a.id === id) || null;
   }
 
   listApprovals() {
+    if (this.backend) return this.backend.listApprovals();
     return [...this.state.approvals];
   }
 
   updateApproval(id, patch) {
+    if (this.backend) return this.backend.updateApproval(id, patch);
     const item = this.state.approvals.find((a) => a.id === id);
     if (!item) return null;
     Object.assign(item, patch);
@@ -105,11 +113,13 @@ export class StateService {
   }
 
   setIdempotency(key, value, savedAt = new Date().toISOString()) {
+    if (this.backend) return this.backend.setIdempotency(key, value, savedAt);
     this.state.idempotency[key] = { savedAt, value };
     this.#persist();
   }
 
   getIdempotency(key) {
+    if (this.backend) return this.backend.getIdempotency(key);
     const entry = this.state.idempotency[key];
     if (!entry) return null;
     if (entry && typeof entry === 'object' && Object.hasOwn(entry, 'value')) {
@@ -119,15 +129,18 @@ export class StateService {
   }
 
   seenNonce(nonce) {
+    if (this.backend) return this.backend.seenNonce(nonce);
     return Boolean(this.state.nonces[nonce]);
   }
 
   registerNonce(nonce, timestampMs) {
+    if (this.backend) return this.backend.registerNonce(nonce, timestampMs);
     this.state.nonces[nonce] = timestampMs;
     this.#persist();
   }
 
   pruneNonces(cutoffMs) {
+    if (this.backend) return this.backend.pruneNonces(cutoffMs);
     let changed = false;
     for (const [nonce, ts] of Object.entries(this.state.nonces)) {
       if (Number(ts) < cutoffMs) {
@@ -139,6 +152,7 @@ export class StateService {
   }
 
   pruneRetention(nowMs = Date.now()) {
+    if (this.backend) return this.backend.pruneRetention(nowMs, this.retention);
     let changed = false;
 
     const approvalsCutoffMs = nowMs - this.retention.approvalsMaxAgeDays * 24 * 60 * 60 * 1000;
@@ -195,11 +209,13 @@ export class StateService {
   }
 
   incrementMetric(key, by = 1) {
+    if (this.backend) return this.backend.incrementMetric(key, by);
     this.state.metrics[key] = (this.state.metrics[key] || 0) + by;
     this.#persist();
   }
 
   acquireWorkerLock(ownerId, ttlMs, nowMs = Date.now()) {
+    if (this.backend) return this.backend.acquireWorkerLock(ownerId, ttlMs, nowMs);
     const lock = this.state.workerLock;
     if (!lock || lock.expiresAt <= nowMs || lock.ownerId === ownerId) {
       this.state.workerLock = {
@@ -214,6 +230,7 @@ export class StateService {
   }
 
   renewWorkerLock(ownerId, ttlMs, nowMs = Date.now()) {
+    if (this.backend) return this.backend.renewWorkerLock(ownerId, ttlMs, nowMs);
     const lock = this.state.workerLock;
     if (!lock || lock.ownerId !== ownerId) return false;
     this.state.workerLock = {
@@ -225,6 +242,7 @@ export class StateService {
   }
 
   releaseWorkerLock(ownerId) {
+    if (this.backend) return this.backend.releaseWorkerLock(ownerId);
     const lock = this.state.workerLock;
     if (!lock || lock.ownerId !== ownerId) return false;
     this.state.workerLock = null;
@@ -233,10 +251,12 @@ export class StateService {
   }
 
   currentWorkerLock() {
+    if (this.backend) return this.backend.currentWorkerLock();
     return this.state.workerLock;
   }
 
   observeLatency(ms) {
+    if (this.backend) return this.backend.observeLatency(ms);
     const bucket = this.state.metrics.latencyMs;
     bucket.count += 1;
     bucket.total += ms;
@@ -245,6 +265,7 @@ export class StateService {
   }
 
   getMetrics() {
+    if (this.backend) return this.backend.getMetrics();
     return this.state.metrics;
   }
 }

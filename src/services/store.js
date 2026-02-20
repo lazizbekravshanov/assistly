@@ -1,12 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { PostgresMirrorService } from './postgres_mirror.js';
 
 export class JsonFileStore {
-  constructor({ dataDir, queueFile, logsFile, stateFile }) {
+  constructor({ dataDir, queueFile, logsFile, stateFile, mirror } = {}) {
     this.dataDir = path.resolve(process.cwd(), dataDir);
     this.queuePath = path.join(this.dataDir, queueFile);
     this.logsPath = path.join(this.dataDir, logsFile);
     this.statePath = path.join(this.dataDir, stateFile);
+    this.mirror = mirror || null;
     fs.mkdirSync(this.dataDir, { recursive: true });
   }
 
@@ -16,6 +18,7 @@ export class JsonFileStore {
 
   writeQueue(items) {
     this.#writeJson(this.queuePath, items);
+    this.mirror?.enqueueSnapshot('queue', items);
   }
 
   readLogs() {
@@ -24,6 +27,7 @@ export class JsonFileStore {
 
   writeLogs(entries) {
     this.#writeJson(this.logsPath, entries);
+    this.mirror?.enqueueSnapshot('logs', entries);
   }
 
   readState() {
@@ -44,6 +48,7 @@ export class JsonFileStore {
 
   writeState(state) {
     this.#writeJson(this.statePath, state);
+    this.mirror?.enqueueSnapshot('state', state);
   }
 
   #readJson(filePath, fallback) {
@@ -61,4 +66,15 @@ export class JsonFileStore {
     fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf8');
     fs.renameSync(tempPath, filePath);
   }
+}
+
+export function createStore(storageConfig = {}) {
+  const mirror = new PostgresMirrorService({
+    enabled: storageConfig.engine === 'postgres',
+    connectionString: storageConfig.databaseUrl
+  });
+  return new JsonFileStore({
+    ...storageConfig,
+    mirror
+  });
 }
