@@ -1,4 +1,4 @@
-# assistly
+# assistly 🦞
 
 Assistly is a **single-owner social media AI assistant backend** that receives commands via OpenClaw webhook events and helps run content operations across:
 - Twitter (X)
