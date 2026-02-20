@@ -1,11 +1,61 @@
 export class StateService {
-  constructor({ store }) {
+  constructor({ store, retention = {} }) {
     this.store = store;
+    this.retention = {
+      approvalsMaxAgeDays: retention.approvalsMaxAgeDays ?? 30,
+      idempotencyMaxAgeDays: retention.idempotencyMaxAgeDays ?? 14,
+      noncesMaxAgeDays: retention.noncesMaxAgeDays ?? 1,
+      maxApprovals: retention.maxApprovals ?? 5000,
+      maxIdempotencyKeys: retention.maxIdempotencyKeys ?? 10000
+    };
     this.state = store.readState();
+    this.#migrateState();
   }
 
   #persist() {
     this.store.writeState(this.state);
+  }
+
+  #migrateState() {
+    let changed = false;
+
+    if (!Array.isArray(this.state.approvals)) {
+      this.state.approvals = [];
+      changed = true;
+    }
+
+    if (!this.state.idempotency || typeof this.state.idempotency !== 'object') {
+      this.state.idempotency = {};
+      changed = true;
+    }
+
+    if (!this.state.nonces || typeof this.state.nonces !== 'object') {
+      this.state.nonces = {};
+      changed = true;
+    }
+
+    if (!this.state.metrics || typeof this.state.metrics !== 'object') {
+      this.state.metrics = {
+        requestCount: 0,
+        errorCount: 0,
+        commandCount: 0,
+        latencyMs: { count: 0, total: 0, max: 0 }
+      };
+      changed = true;
+    }
+
+    for (const [key, entry] of Object.entries(this.state.idempotency)) {
+      if (entry && typeof entry === 'object' && Object.hasOwn(entry, 'savedAt') && Object.hasOwn(entry, 'value')) {
+        continue;
+      }
+      this.state.idempotency[key] = {
+        savedAt: new Date().toISOString(),
+        value: entry
+      };
+      changed = true;
+    }
+
+    if (changed) this.#persist();
   }
 
   getSession(userId) {
@@ -50,13 +100,18 @@ export class StateService {
     return item;
   }
 
-  setIdempotency(key, value) {
-    this.state.idempotency[key] = value;
+  setIdempotency(key, value, savedAt = new Date().toISOString()) {
+    this.state.idempotency[key] = { savedAt, value };
     this.#persist();
   }
 
   getIdempotency(key) {
-    return this.state.idempotency[key] || null;
+    const entry = this.state.idempotency[key];
+    if (!entry) return null;
+    if (entry && typeof entry === 'object' && Object.hasOwn(entry, 'value')) {
+      return entry.value;
+    }
+    return entry;
   }
 
   seenNonce(nonce) {
@@ -69,10 +124,70 @@ export class StateService {
   }
 
   pruneNonces(cutoffMs) {
+    let changed = false;
     for (const [nonce, ts] of Object.entries(this.state.nonces)) {
-      if (Number(ts) < cutoffMs) delete this.state.nonces[nonce];
+      if (Number(ts) < cutoffMs) {
+        delete this.state.nonces[nonce];
+        changed = true;
+      }
     }
-    this.#persist();
+    if (changed) this.#persist();
+  }
+
+  pruneRetention(nowMs = Date.now()) {
+    let changed = false;
+
+    const approvalsCutoffMs = nowMs - this.retention.approvalsMaxAgeDays * 24 * 60 * 60 * 1000;
+    const idempotencyCutoffMs = nowMs - this.retention.idempotencyMaxAgeDays * 24 * 60 * 60 * 1000;
+    const noncesCutoffMs = nowMs - this.retention.noncesMaxAgeDays * 24 * 60 * 60 * 1000;
+
+    const keptApprovals = this.state.approvals.filter((item) => {
+      const ts = Date.parse(item?.createdAt || '');
+      return !Number.isFinite(ts) || ts >= approvalsCutoffMs;
+    });
+    if (keptApprovals.length !== this.state.approvals.length) {
+      this.state.approvals = keptApprovals;
+      changed = true;
+    }
+
+    if (this.state.approvals.length > this.retention.maxApprovals) {
+      const byAgeDesc = [...this.state.approvals].sort((a, b) => {
+        const ta = Date.parse(a?.createdAt || '');
+        const tb = Date.parse(b?.createdAt || '');
+        return (Number.isFinite(tb) ? tb : 0) - (Number.isFinite(ta) ? ta : 0);
+      });
+      this.state.approvals = byAgeDesc.slice(0, this.retention.maxApprovals);
+      changed = true;
+    }
+
+    const keptIdempotencyEntries = Object.entries(this.state.idempotency).filter(([, entry]) => {
+      const ts = Date.parse(entry?.savedAt || '');
+      return !Number.isFinite(ts) || ts >= idempotencyCutoffMs;
+    });
+    if (keptIdempotencyEntries.length !== Object.keys(this.state.idempotency).length) {
+      this.state.idempotency = Object.fromEntries(keptIdempotencyEntries);
+      changed = true;
+    }
+
+    const idempotencyEntries = Object.entries(this.state.idempotency);
+    if (idempotencyEntries.length > this.retention.maxIdempotencyKeys) {
+      idempotencyEntries.sort(([, a], [, b]) => {
+        const ta = Date.parse(a?.savedAt || '');
+        const tb = Date.parse(b?.savedAt || '');
+        return (Number.isFinite(tb) ? tb : 0) - (Number.isFinite(ta) ? ta : 0);
+      });
+      this.state.idempotency = Object.fromEntries(idempotencyEntries.slice(0, this.retention.maxIdempotencyKeys));
+      changed = true;
+    }
+
+    for (const [nonce, ts] of Object.entries(this.state.nonces)) {
+      if (Number(ts) < noncesCutoffMs) {
+        delete this.state.nonces[nonce];
+        changed = true;
+      }
+    }
+
+    if (changed) this.#persist();
   }
 
   incrementMetric(key, by = 1) {

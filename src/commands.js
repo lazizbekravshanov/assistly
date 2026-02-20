@@ -1,9 +1,18 @@
 import { scanContentSafety } from './security/content.js';
 
-let approvalSeq = 1;
+function nextApprovalId(stateService) {
+  let candidate = '';
+  do {
+    candidate = `appr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  } while (stateService.getApproval(candidate));
+  return candidate;
+}
 
-function nextApprovalId() {
-  return `appr_${approvalSeq++}`;
+function parseScheduleTime(iso) {
+  if (typeof iso !== 'string') return null;
+  const parsedMs = Date.parse(iso);
+  if (!Number.isFinite(parsedMs)) return null;
+  return new Date(parsedMs).toISOString();
 }
 
 function parseCommand(text) {
@@ -147,6 +156,10 @@ async function executeAction(action, ctx) {
     if (!platform || !time || contentParts.length === 0) {
       return { ok: false, message: 'Usage: /schedule [platform] [ISO time] [content]' };
     }
+    const normalizedTime = parseScheduleTime(time);
+    if (!normalizedTime) {
+      return { ok: false, message: 'Invalid schedule time. Use an ISO-8601 timestamp.' };
+    }
 
     if (!platformClients[platform]) {
       return { ok: false, message: `Unsupported platform: ${platform}` };
@@ -154,7 +167,7 @@ async function executeAction(action, ctx) {
 
     const conflict = queue.findScheduleConflict({
       platform,
-      scheduledAt: time,
+      scheduledAt: normalizedTime,
       minGapHours: config.schedule.minPostGapHours
     });
     if (conflict) {
@@ -167,7 +180,7 @@ async function executeAction(action, ctx) {
     const content = contentParts.join(' ').trim();
     const item = queue.schedule({
       platform,
-      scheduledAt: time,
+      scheduledAt: normalizedTime,
       content,
       idempotencyKey: idempotencyKey(ctx.envelope, '/schedule')
     });
@@ -175,7 +188,7 @@ async function executeAction(action, ctx) {
       traceId: ctx.traceId,
       id: item.id,
       platform,
-      scheduledAt: time
+      scheduledAt: normalizedTime
     });
     return { ok: true, data: item };
   }
@@ -293,7 +306,7 @@ export async function handleCommand(ctx) {
 
   if (policyEngine.needsApproval(parsed.name, approvalContext) && parsed.name !== '/approve' && parsed.name !== '/reject') {
     const approval = stateService.addApproval({
-      id: nextApprovalId(),
+      id: nextApprovalId(stateService),
       status: 'pending',
       createdAt: new Date().toISOString(),
       command: parsed.name,

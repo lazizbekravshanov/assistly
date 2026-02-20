@@ -20,8 +20,20 @@ function traceId() {
 export class SocialMediaBot {
   constructor({ platformClients } = {}) {
     this.store = new JsonFileStore(config.storage);
-    this.stateService = new StateService({ store: this.store });
-    this.logger = new Logger({ store: this.store });
+    this.stateService = new StateService({
+      store: this.store,
+      retention: {
+        approvalsMaxAgeDays: config.retention.approvalsDays,
+        idempotencyMaxAgeDays: config.retention.idempotencyDays,
+        noncesMaxAgeDays: config.retention.noncesDays,
+        maxApprovals: config.retention.maxApprovals,
+        maxIdempotencyKeys: config.retention.maxIdempotency
+      }
+    });
+    this.logger = new Logger({
+      store: this.store,
+      maxAgeDays: config.retention.logsDays
+    });
     this.auth = new SessionAuth({
       passphrase: config.owner.passphrase,
       timeoutMinutes: config.bot.sessionTimeoutMinutes,
@@ -50,6 +62,7 @@ export class SocialMediaBot {
   }
 
   async processDueQueue(nowIso = new Date().toISOString()) {
+    this.stateService.pruneRetention();
     const dueItems = this.queue.due(nowIso);
     const results = [];
 
@@ -89,6 +102,7 @@ export class SocialMediaBot {
   async processEvent(envelope) {
     const started = Date.now();
     const reqTraceId = envelope.trace_id || traceId();
+    this.stateService.pruneRetention();
     this.stateService.incrementMetric('requestCount');
 
     const incoming = {

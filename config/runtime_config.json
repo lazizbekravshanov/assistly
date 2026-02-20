@@ -18,6 +18,7 @@
   "openclaw": {
     "webhookSecret": "dev-openclaw-secret",
     "maxSkewSeconds": 300,
+    "maxBodyBytes": 1048576,
     "enforceSignature": false
   },
   "policy": {
@@ -68,7 +69,12 @@
   },
   "retention": {
     "postDataDays": 90,
-    "logsDays": 180
+    "logsDays": 180,
+    "approvalsDays": 30,
+    "idempotencyDays": 14,
+    "noncesDays": 1,
+    "maxApprovals": 5000,
+    "maxIdempotency": 10000
   },
   "storage": {
     "dataDir": "data",

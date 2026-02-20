@@ -31,13 +31,16 @@ function sanitizeObject(obj) {
 }
 
 export class Logger {
-  constructor({ store, maxEntries = 5000 }) {
+  constructor({ store, maxEntries = 5000, maxAgeDays = 180 }) {
     this.store = store;
     this.maxEntries = maxEntries;
+    this.maxAgeDays = maxAgeDays;
     this.entries = store ? store.readLogs() : [];
   }
 
   log(event, metadata = {}) {
+    this.#pruneOldEntries();
+
     const entry = {
       ts: new Date().toISOString(),
       event,
@@ -58,5 +61,13 @@ export class Logger {
 
   getRecent(limit = 50) {
     return this.entries.slice(-limit);
+  }
+
+  #pruneOldEntries(nowMs = Date.now()) {
+    const cutoff = nowMs - this.maxAgeDays * 24 * 60 * 60 * 1000;
+    this.entries = this.entries.filter((entry) => {
+      const ts = Date.parse(entry?.ts || '');
+      return !Number.isFinite(ts) || ts >= cutoff;
+    });
   }
 }

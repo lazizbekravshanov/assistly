@@ -78,6 +78,26 @@ test('schedule conflict is blocked by min gap policy', async () => {
   assert.match(second.message, /Schedule conflict/);
 });
 
+test('schedule rejects invalid ISO timestamp', async () => {
+  reset();
+  const bot = await authedBot();
+  const result = await bot.processEvent(envelope({ text: '/schedule twitter not-a-time this should fail' }));
+  assert.equal(result.ok, false);
+  assert.match(result.message, /Invalid schedule time/);
+});
+
+test('approval ids remain unique after restart', async () => {
+  reset();
+  const firstBot = await authedBot();
+  const first = await firstBot.processEvent(envelope({ text: '/delete q_1' }));
+  assert.equal(first.requiresApproval, true);
+
+  const secondBot = await authedBot();
+  const second = await secondBot.processEvent(envelope({ text: '/delete q_2' }));
+  assert.equal(second.requiresApproval, true);
+  assert.notEqual(second.approvalId, first.approvalId);
+});
+
 test('content safety flags email leak', async () => {
   reset();
   const bot = await authedBot();

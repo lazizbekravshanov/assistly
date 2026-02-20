@@ -54,9 +54,32 @@ function mergeConfig(base) {
         fromEnv('OPENCLAW_MAX_SKEW_SECONDS', base.openclaw.maxSkewSeconds),
         base.openclaw.maxSkewSeconds
       ),
+      maxBodyBytes: parseNumber(
+        fromEnv('OPENCLAW_MAX_BODY_BYTES', base.openclaw.maxBodyBytes),
+        base.openclaw.maxBodyBytes
+      ),
       enforceSignature: parseBool(
         fromEnv('OPENCLAW_ENFORCE_SIGNATURE', base.openclaw.enforceSignature),
         base.openclaw.enforceSignature
+      )
+    },
+    retention: {
+      ...base.retention,
+      postDataDays: parseNumber(fromEnv('RETENTION_POST_DATA_DAYS', base.retention.postDataDays), base.retention.postDataDays),
+      logsDays: parseNumber(fromEnv('RETENTION_LOGS_DAYS', base.retention.logsDays), base.retention.logsDays),
+      approvalsDays: parseNumber(
+        fromEnv('RETENTION_APPROVALS_DAYS', base.retention.approvalsDays),
+        base.retention.approvalsDays
+      ),
+      idempotencyDays: parseNumber(
+        fromEnv('RETENTION_IDEMPOTENCY_DAYS', base.retention.idempotencyDays),
+        base.retention.idempotencyDays
+      ),
+      noncesDays: parseNumber(fromEnv('RETENTION_NONCES_DAYS', base.retention.noncesDays), base.retention.noncesDays),
+      maxApprovals: parseNumber(fromEnv('RETENTION_MAX_APPROVALS', base.retention.maxApprovals), base.retention.maxApprovals),
+      maxIdempotency: parseNumber(
+        fromEnv('RETENTION_MAX_IDEMPOTENCY', base.retention.maxIdempotency),
+        base.retention.maxIdempotency
       )
     },
     platforms: {
@@ -95,6 +118,9 @@ function validateConfig(cfg) {
   }
   if (cfg.openclaw.enforceSignature && !cfg.openclaw.webhookSecret) {
     throw new Error('OPENCLAW_ENFORCE_SIGNATURE=true requires OPENCLAW_WEBHOOK_SECRET.');
+  }
+  if (!Number.isFinite(cfg.openclaw.maxBodyBytes) || cfg.openclaw.maxBodyBytes <= 0) {
+    throw new Error('OPENCLAW_MAX_BODY_BYTES must be a positive number.');
   }
 }
 
