@@ -26,6 +26,22 @@ function idempotencyKey(envelope, commandName) {
   return `${envelope.channel || 'unknown'}:${envelope.message_id}:${commandName}`;
 }
 
+function parseKeyValueArgs(args) {
+  const out = {};
+  for (const token of args) {
+    const [k, ...rest] = String(token).split('=');
+    if (!k || rest.length === 0) continue;
+    out[k.toLowerCase()] = rest.join('=');
+  }
+  return out;
+}
+
+function toInt(value, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
 function summarizeForConfirm(name, result) {
   if (name === '/post') {
     const ok = (result.data || []).filter((x) => x.ok).length;
@@ -78,38 +94,79 @@ async function executeAction(action, ctx) {
 
   if (name === '/status') {
     const queueItems = queue.list();
+    const deadLetters = queueItems.filter((x) => x.status === 'dead_letter').length;
+    const pendingApprovals = stateService.listApprovals().filter((a) => a.status === 'pending').length;
     return {
       ok: true,
+      message: `Queue ${queueItems.length} items, ${deadLetters} dead-letter, ${pendingApprovals} approvals pending.`,
       data: {
         queueSize: queueItems.length,
         scheduled: queueItems.filter((x) => x.status === 'scheduled').length,
         retrying: queueItems.filter((x) => x.status === 'retrying').length,
         failed: queueItems.filter((x) => x.status === 'failed').length,
-        pendingApprovals: stateService.listApprovals().filter((a) => a.status === 'pending').length,
+        deadLetter: deadLetters,
+        pendingApprovals,
         versions: config.versions
       }
     };
   }
 
   if (name === '/logs') {
-    const rawLimit = args[0];
-    const limit = Number.isFinite(Number(rawLimit)) ? Number(rawLimit) : 50;
-    return { ok: true, data: logger.getRecent(Math.max(1, Math.min(500, limit))) };
+    const kv = parseKeyValueArgs(args);
+    const limit = toInt(kv.limit ?? args[0], 50, 1, 500);
+    const offset = toInt(kv.offset ?? args[1], 0, 0, 50000);
+    const query = logger.query({
+      event: kv.event,
+      since: kv.since,
+      until: kv.until,
+      limit,
+      offset
+    });
+    return {
+      ok: true,
+      message: query.total === 0
+        ? 'Logs 0-0 of 0.'
+        : `Logs ${query.offset + 1}-${Math.min(query.offset + query.items.length, query.total)} of ${query.total}.`,
+      data: query
+    };
   }
 
   if (name === '/audit') {
+    const kv = parseKeyValueArgs(args);
+    const limit = toInt(kv.limit, 100, 1, 500);
+    const event = kv.event;
+    const since = kv.since;
+    const until = kv.until;
+    const logQuery = logger.query({ event, since, until, limit });
     return {
       ok: true,
       data: {
         metrics: stateService.getMetrics(),
         versions: config.versions,
-        pendingApprovals: stateService.listApprovals().filter((a) => a.status === 'pending')
+        pendingApprovals: stateService.listApprovals().filter((a) => a.status === 'pending'),
+        filters: { event: event || null, since: since || null, until: until || null, limit },
+        recentEvents: logQuery.items,
+        totalMatchingEvents: logQuery.total
       }
     };
   }
 
   if (name === '/queue') {
-    return { ok: true, data: queue.list() };
+    const page = toInt(args[0], 1, 1, 100000);
+    const pageSize = toInt(args[1], 20, 1, 200);
+    const items = queue.list();
+    const offset = (page - 1) * pageSize;
+    const paged = items.slice(offset, offset + pageSize);
+    return {
+      ok: true,
+      message: `Queue page ${page}, showing ${paged.length} of ${items.length}.`,
+      data: {
+        page,
+        pageSize,
+        total: items.length,
+        items: paged
+      }
+    };
   }
 
   if (name === '/draft') {

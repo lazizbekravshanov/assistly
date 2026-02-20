@@ -47,3 +47,36 @@ test('openclaw signature verifies and blocks replay nonce', () => {
   assert.equal(second.ok, false);
   assert.equal(second.reason, 'replay_detected');
 });
+
+test('openclaw accepts rotated secrets list', () => {
+  reset();
+  const store = new JsonFileStore({
+    dataDir: '.test-data',
+    queueFile: 'queue.json',
+    logsFile: 'logs.json',
+    stateFile: 'state.json'
+  });
+  const stateService = new StateService({ store });
+
+  const verifier = buildOpenClawVerifier({
+    secret: 'old-secret,new-secret',
+    maxSkewSeconds: 300,
+    enforceSignature: true,
+    stateService
+  });
+
+  const rawBody = JSON.stringify({ text: '/status' });
+  const now = Date.now();
+  const nonce = 'nonce-2';
+  const payload = `${now}.${nonce}.${rawBody}`;
+  const sig = crypto.createHmac('sha256', 'new-secret').update(payload).digest('hex');
+
+  const headers = {
+    'x-openclaw-signature': sig,
+    'x-openclaw-timestamp': String(now),
+    'x-openclaw-nonce': nonce
+  };
+
+  const result = verifier({ headers, rawBody, nowMs: now });
+  assert.equal(result.ok, true);
+});

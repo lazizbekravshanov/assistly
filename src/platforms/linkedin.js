@@ -11,6 +11,9 @@ export class LinkedInClient {
     this.token = config.accessToken;
     this.profileId = config.profileId;
     this.baseUrl = 'https://api.linkedin.com/v2';
+    this.httpTimeoutMs = config.httpTimeoutMs ?? 10000;
+    this.httpRetries = config.httpRetries ?? 2;
+    this.httpBackoffMs = config.httpBackoffMs ?? 250;
   }
 
   async post(content) {
@@ -40,7 +43,10 @@ export class LinkedInClient {
         visibility: {
           'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
         }
-      }
+      },
+      timeoutMs: this.httpTimeoutMs,
+      retries: this.httpRetries,
+      backoffMs: this.httpBackoffMs
     });
 
     const id = data?.id || null;
@@ -63,7 +69,10 @@ export class LinkedInClient {
       headers: {
         Authorization: `Bearer ${this.token}`,
         'X-Restli-Protocol-Version': '2.0.0'
-      }
+      },
+      timeoutMs: this.httpTimeoutMs,
+      retries: this.httpRetries,
+      backoffMs: this.httpBackoffMs
     });
 
     return {

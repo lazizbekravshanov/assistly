@@ -50,6 +50,7 @@ function mergeConfig(base) {
     openclaw: {
       ...base.openclaw,
       webhookSecret: fromEnv('OPENCLAW_WEBHOOK_SECRET', base.openclaw.webhookSecret),
+      webhookSecrets: fromEnv('OPENCLAW_WEBHOOK_SECRETS', base.openclaw.webhookSecrets || ''),
       maxSkewSeconds: parseNumber(
         fromEnv('OPENCLAW_MAX_SKEW_SECONDS', base.openclaw.maxSkewSeconds),
         base.openclaw.maxSkewSeconds
@@ -61,6 +62,14 @@ function mergeConfig(base) {
       enforceSignature: parseBool(
         fromEnv('OPENCLAW_ENFORCE_SIGNATURE', base.openclaw.enforceSignature),
         base.openclaw.enforceSignature
+      ),
+      rateLimitWindowSeconds: parseNumber(
+        fromEnv('OPENCLAW_RATE_LIMIT_WINDOW_SECONDS', base.openclaw.rateLimitWindowSeconds),
+        base.openclaw.rateLimitWindowSeconds
+      ),
+      rateLimitMaxRequests: parseNumber(
+        fromEnv('OPENCLAW_RATE_LIMIT_MAX_REQUESTS', base.openclaw.rateLimitMaxRequests),
+        base.openclaw.rateLimitMaxRequests
       )
     },
     retention: {
@@ -86,18 +95,62 @@ function mergeConfig(base) {
       ...base.platforms,
       twitter: {
         ...base.platforms.twitter,
-        accessToken: fromEnv('TWITTER_ACCESS_TOKEN', base.platforms.twitter.accessToken)
+        accessToken: fromEnv('TWITTER_ACCESS_TOKEN', base.platforms.twitter.accessToken),
+        httpTimeoutMs: parseNumber(
+          fromEnv('TWITTER_HTTP_TIMEOUT_MS', base.platforms.twitter.httpTimeoutMs),
+          base.platforms.twitter.httpTimeoutMs
+        ),
+        httpRetries: parseNumber(
+          fromEnv('TWITTER_HTTP_RETRIES', base.platforms.twitter.httpRetries),
+          base.platforms.twitter.httpRetries
+        ),
+        httpBackoffMs: parseNumber(
+          fromEnv('TWITTER_HTTP_BACKOFF_MS', base.platforms.twitter.httpBackoffMs),
+          base.platforms.twitter.httpBackoffMs
+        )
       },
       telegram: {
         ...base.platforms.telegram,
         botToken: fromEnv('TELEGRAM_BOT_TOKEN', base.platforms.telegram.botToken),
-        channelId: fromEnv('TELEGRAM_CHANNEL_ID', base.platforms.telegram.channelId)
+        channelId: fromEnv('TELEGRAM_CHANNEL_ID', base.platforms.telegram.channelId),
+        httpTimeoutMs: parseNumber(
+          fromEnv('TELEGRAM_HTTP_TIMEOUT_MS', base.platforms.telegram.httpTimeoutMs),
+          base.platforms.telegram.httpTimeoutMs
+        ),
+        httpRetries: parseNumber(
+          fromEnv('TELEGRAM_HTTP_RETRIES', base.platforms.telegram.httpRetries),
+          base.platforms.telegram.httpRetries
+        ),
+        httpBackoffMs: parseNumber(
+          fromEnv('TELEGRAM_HTTP_BACKOFF_MS', base.platforms.telegram.httpBackoffMs),
+          base.platforms.telegram.httpBackoffMs
+        )
       },
       linkedin: {
         ...base.platforms.linkedin,
         accessToken: fromEnv('LINKEDIN_ACCESS_TOKEN', base.platforms.linkedin.accessToken),
-        profileId: fromEnv('LINKEDIN_PROFILE_ID', base.platforms.linkedin.profileId)
+        profileId: fromEnv('LINKEDIN_PROFILE_ID', base.platforms.linkedin.profileId),
+        httpTimeoutMs: parseNumber(
+          fromEnv('LINKEDIN_HTTP_TIMEOUT_MS', base.platforms.linkedin.httpTimeoutMs),
+          base.platforms.linkedin.httpTimeoutMs
+        ),
+        httpRetries: parseNumber(
+          fromEnv('LINKEDIN_HTTP_RETRIES', base.platforms.linkedin.httpRetries),
+          base.platforms.linkedin.httpRetries
+        ),
+        httpBackoffMs: parseNumber(
+          fromEnv('LINKEDIN_HTTP_BACKOFF_MS', base.platforms.linkedin.httpBackoffMs),
+          base.platforms.linkedin.httpBackoffMs
+        )
       }
+    },
+    schedule: {
+      ...base.schedule,
+      maxRetries: parseNumber(fromEnv('SCHEDULE_MAX_RETRIES', base.schedule.maxRetries), base.schedule.maxRetries),
+      workerLockSeconds: parseNumber(
+        fromEnv('SCHEDULE_WORKER_LOCK_SECONDS', base.schedule.workerLockSeconds),
+        base.schedule.workerLockSeconds
+      )
     },
     storage: {
       ...base.storage,
@@ -116,11 +169,18 @@ function validateConfig(cfg) {
   if (!cfg.owner.id) {
     throw new Error('Missing OWNER_ID.');
   }
-  if (cfg.openclaw.enforceSignature && !cfg.openclaw.webhookSecret) {
-    throw new Error('OPENCLAW_ENFORCE_SIGNATURE=true requires OPENCLAW_WEBHOOK_SECRET.');
+  const hasSecrets = Boolean(cfg.openclaw.webhookSecret) || String(cfg.openclaw.webhookSecrets || '').trim().length > 0;
+  if (cfg.openclaw.enforceSignature && !hasSecrets) {
+    throw new Error('OPENCLAW_ENFORCE_SIGNATURE=true requires OPENCLAW_WEBHOOK_SECRET or OPENCLAW_WEBHOOK_SECRETS.');
   }
   if (!Number.isFinite(cfg.openclaw.maxBodyBytes) || cfg.openclaw.maxBodyBytes <= 0) {
     throw new Error('OPENCLAW_MAX_BODY_BYTES must be a positive number.');
+  }
+  if (!Number.isFinite(cfg.openclaw.rateLimitWindowSeconds) || cfg.openclaw.rateLimitWindowSeconds <= 0) {
+    throw new Error('OPENCLAW_RATE_LIMIT_WINDOW_SECONDS must be a positive number.');
+  }
+  if (!Number.isFinite(cfg.openclaw.rateLimitMaxRequests) || cfg.openclaw.rateLimitMaxRequests <= 0) {
+    throw new Error('OPENCLAW_RATE_LIMIT_MAX_REQUESTS must be a positive number.');
   }
 }
 

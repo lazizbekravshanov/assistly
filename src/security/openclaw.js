@@ -8,6 +8,13 @@ function safeEqualHex(a, b) {
 }
 
 export function buildOpenClawVerifier({ secret, maxSkewSeconds, enforceSignature, stateService }) {
+  const secrets = Array.isArray(secret)
+    ? secret.filter(Boolean)
+    : String(secret || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
   return function verify({ headers, rawBody, nowMs = Date.now() }) {
     if (!enforceSignature) {
       return { ok: true };
@@ -37,8 +44,10 @@ export function buildOpenClawVerifier({ secret, maxSkewSeconds, enforceSignature
     }
 
     const payload = `${timestamp}.${nonce}.${rawBody}`;
-    const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-    const valid = safeEqualHex(expected, signature);
+    const valid = secrets.some((candidate) => {
+      const expected = crypto.createHmac('sha256', candidate).update(payload).digest('hex');
+      return safeEqualHex(expected, signature);
+    });
 
     if (!valid) {
       return { ok: false, reason: 'signature_mismatch' };

@@ -120,7 +120,8 @@ test('delete goes through approval gate', async () => {
   assert.equal(approved.ok, true);
 
   const queue = await bot.processEvent(envelope({ text: '/queue' }));
-  assert.equal(queue.data.length, 0);
+  assert.equal(queue.data.total, 0);
+  assert.equal(queue.data.items.length, 0);
 });
 
 test('idempotency replays same message id', async () => {
@@ -147,4 +148,37 @@ test('multi-platform post supports partial failures', async () => {
   assert.equal(Array.isArray(result.data), true);
   assert.equal(result.data.length, 3);
   assert.equal(result.data.some((x) => x.ok === false), true);
+});
+
+test('queue supports pagination shape', async () => {
+  reset();
+  const bot = await authedBot();
+  await bot.processEvent(envelope({ text: '/schedule twitter 2026-02-18T09:00:00Z post-1' }));
+  await bot.processEvent(envelope({ text: '/schedule twitter 2026-02-18T13:00:00Z post-2' }));
+  await bot.processEvent(envelope({ text: '/schedule twitter 2026-02-18T17:00:00Z post-3' }));
+
+  const page1 = await bot.processEvent(envelope({ text: '/queue 1 2' }));
+  assert.equal(page1.ok, true);
+  assert.equal(page1.data.page, 1);
+  assert.equal(page1.data.pageSize, 2);
+  assert.equal(page1.data.total, 3);
+  assert.equal(page1.data.items.length, 2);
+
+  const page2 = await bot.processEvent(envelope({ text: '/queue 2 2' }));
+  assert.equal(page2.data.items.length, 1);
+});
+
+test('scheduled post failures move to dead-letter after max retries', async () => {
+  reset();
+  const bot = await authedBot();
+  await bot.processEvent(envelope({ text: '/schedule telegram 2026-02-18T09:00:00Z fail-me' }));
+
+  await bot.processDueQueue('2026-02-18T09:00:01.000Z');
+  await bot.processDueQueue('2026-02-18T09:06:00.000Z');
+  await bot.processDueQueue('2026-02-18T09:12:00.000Z');
+
+  const queue = await bot.processEvent(envelope({ text: '/queue' }));
+  assert.equal(queue.data.total, 1);
+  assert.equal(queue.data.items[0].status, 'dead_letter');
+  assert.ok(queue.data.items[0].deadLetterAt);
 });

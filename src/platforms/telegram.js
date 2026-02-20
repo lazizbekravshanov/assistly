@@ -4,6 +4,9 @@ export class TelegramClient {
   constructor(config) {
     this.botToken = config.botToken;
     this.channelId = config.channelId;
+    this.httpTimeoutMs = config.httpTimeoutMs ?? 10000;
+    this.httpRetries = config.httpRetries ?? 2;
+    this.httpBackoffMs = config.httpBackoffMs ?? 250;
   }
 
   #url(method) {
@@ -22,7 +25,10 @@ export class TelegramClient {
         chat_id: this.channelId,
         text: content,
         parse_mode: 'Markdown'
-      }
+      },
+      timeoutMs: this.httpTimeoutMs,
+      retries: this.httpRetries,
+      backoffMs: this.httpBackoffMs
     });
 
     const messageId = data?.result?.message_id;
@@ -42,7 +48,10 @@ export class TelegramClient {
       url: this.#url('getChatMemberCount'),
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: { chat_id: this.channelId }
+      body: { chat_id: this.channelId },
+      timeoutMs: this.httpTimeoutMs,
+      retries: this.httpRetries,
+      backoffMs: this.httpBackoffMs
     });
 
     return {

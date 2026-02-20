@@ -32,6 +32,7 @@ export class JsonFileStore {
       approvals: [],
       idempotency: {},
       nonces: {},
+      workerLock: null,
       metrics: {
         requestCount: 0,
         errorCount: 0,

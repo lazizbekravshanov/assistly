@@ -17,8 +17,11 @@
   },
   "openclaw": {
     "webhookSecret": "dev-openclaw-secret",
+    "webhookSecrets": "",
     "maxSkewSeconds": 300,
     "maxBodyBytes": 1048576,
+    "rateLimitWindowSeconds": 60,
+    "rateLimitMaxRequests": 120,
     "enforceSignature": false
   },
   "policy": {
@@ -38,17 +41,26 @@
   "platforms": {
     "twitter": {
       "accessToken": "",
+      "httpTimeoutMs": 10000,
+      "httpRetries": 2,
+      "httpBackoffMs": 250,
       "mentionCheckIntervalMinutes": 15
     },
     "telegram": {
       "botToken": "",
       "channelId": "",
+      "httpTimeoutMs": 10000,
+      "httpRetries": 2,
+      "httpBackoffMs": 250,
       "autoUnpinDays": 7,
       "subscriberDropThresholdPercent": 5
     },
     "linkedin": {
       "accessToken": "",
       "profileId": "",
+      "httpTimeoutMs": 10000,
+      "httpRetries": 2,
+      "httpBackoffMs": 250,
       "commentCheckIntervalMinutes": 30
     }
   },
@@ -56,6 +68,8 @@
     "minPostGapHours": 3,
     "dailySummaryTime": "08:00",
     "retryIntervalMinutes": 5,
+    "maxRetries": 3,
+    "workerLockSeconds": 45,
     "autoPostCategories": ["daily_quotes", "scheduled_series"],
     "weeklySchedule": {
       "Monday": {"twitter": ["09:00", "18:00"], "telegram": ["10:00"], "linkedin": ["08:30"]},

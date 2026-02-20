@@ -19,6 +19,7 @@ function traceId() {
 
 export class SocialMediaBot {
   constructor({ platformClients } = {}) {
+    this.instanceId = `bot_${Math.random().toString(36).slice(2, 10)}`;
     this.store = new JsonFileStore(config.storage);
     this.stateService = new StateService({
       store: this.store,
@@ -44,6 +45,7 @@ export class SocialMediaBot {
     this.policyEngine = new PolicyEngine(config.policy);
     this.queue = new PostQueue({
       retryIntervalMinutes: config.schedule.retryIntervalMinutes,
+      maxRetries: config.schedule.maxRetries,
       store: this.store
     });
     this.platformClients = platformClients || {
@@ -61,42 +63,70 @@ export class SocialMediaBot {
     return this.stateService.getMetrics();
   }
 
+  readinessSnapshot() {
+    const lock = this.stateService.currentWorkerLock();
+    const queueItems = this.queue.list();
+    return {
+      ready: true,
+      queueSize: queueItems.length,
+      queueScheduled: queueItems.filter((x) => x.status === 'scheduled').length,
+      queueRetrying: queueItems.filter((x) => x.status === 'retrying').length,
+      queueDeadLetter: queueItems.filter((x) => x.status === 'dead_letter').length,
+      workerLock: lock
+    };
+  }
+
   async processDueQueue(nowIso = new Date().toISOString()) {
     this.stateService.pruneRetention();
+    const nowMs = Date.parse(nowIso);
+    const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const lockTtlMs = config.schedule.workerLockSeconds * 1000;
+    const lockAcquired = this.stateService.acquireWorkerLock(this.instanceId, lockTtlMs, safeNowMs);
+    if (!lockAcquired) {
+      this.logger.log('queue.lock.skipped', { instanceId: this.instanceId });
+      return [];
+    }
+
     const dueItems = this.queue.due(nowIso);
     const results = [];
 
-    for (const item of dueItems) {
-      const client = this.platformClients[item.platform];
-      if (!client) {
-        this.queue.markFailed(item.id, `Unsupported platform: ${item.platform}`);
-        continue;
+    try {
+      for (const item of dueItems) {
+        this.stateService.renewWorkerLock(this.instanceId, lockTtlMs, safeNowMs);
+        const client = this.platformClients[item.platform];
+        if (!client) {
+          this.queue.markFailed(item.id, `Unsupported platform: ${item.platform}`);
+          continue;
+        }
+
+        try {
+          const posted = await client.post(item.content);
+          this.queue.markPosted(item.id, posted.id, safeNowMs);
+          this.logger.log('post.published.scheduled', {
+            queueId: item.id,
+            platform: item.platform,
+            remoteId: posted.id,
+            apiStatus: 200
+          });
+          results.push({ id: item.id, status: 'posted', remoteId: posted.id });
+        } catch (error) {
+          const failed = this.queue.markFailed(item.id, error.message, safeNowMs);
+          this.logger.log('post.failed', {
+            queueId: item.id,
+            platform: item.platform,
+            retries: failed?.retries ?? 0,
+            error: error.message,
+            apiStatus: 500,
+            deadLetter: failed?.status === 'dead_letter'
+          });
+          results.push({ id: item.id, status: failed?.status || 'failed', error: error.message });
+        }
       }
 
-      try {
-        const posted = await client.post(item.content);
-        this.queue.markPosted(item.id, posted.id);
-        this.logger.log('post.published.scheduled', {
-          queueId: item.id,
-          platform: item.platform,
-          remoteId: posted.id,
-          apiStatus: 200
-        });
-        results.push({ id: item.id, status: 'posted', remoteId: posted.id });
-      } catch (error) {
-        const failed = this.queue.markFailed(item.id, error.message);
-        this.logger.log('post.failed', {
-          queueId: item.id,
-          platform: item.platform,
-          retries: failed?.retries ?? 0,
-          error: error.message,
-          apiStatus: 500
-        });
-        results.push({ id: item.id, status: failed?.status || 'failed', error: error.message });
-      }
+      return results;
+    } finally {
+      this.stateService.releaseWorkerLock(this.instanceId);
     }
-
-    return results;
   }
 
   async processEvent(envelope) {

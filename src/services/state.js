@@ -33,6 +33,10 @@ export class StateService {
       this.state.nonces = {};
       changed = true;
     }
+    if (!this.state.workerLock || typeof this.state.workerLock !== 'object') {
+      this.state.workerLock = null;
+      changed = true;
+    }
 
     if (!this.state.metrics || typeof this.state.metrics !== 'object') {
       this.state.metrics = {
@@ -193,6 +197,43 @@ export class StateService {
   incrementMetric(key, by = 1) {
     this.state.metrics[key] = (this.state.metrics[key] || 0) + by;
     this.#persist();
+  }
+
+  acquireWorkerLock(ownerId, ttlMs, nowMs = Date.now()) {
+    const lock = this.state.workerLock;
+    if (!lock || lock.expiresAt <= nowMs || lock.ownerId === ownerId) {
+      this.state.workerLock = {
+        ownerId,
+        acquiredAt: nowMs,
+        expiresAt: nowMs + ttlMs
+      };
+      this.#persist();
+      return true;
+    }
+    return false;
+  }
+
+  renewWorkerLock(ownerId, ttlMs, nowMs = Date.now()) {
+    const lock = this.state.workerLock;
+    if (!lock || lock.ownerId !== ownerId) return false;
+    this.state.workerLock = {
+      ...lock,
+      expiresAt: nowMs + ttlMs
+    };
+    this.#persist();
+    return true;
+  }
+
+  releaseWorkerLock(ownerId) {
+    const lock = this.state.workerLock;
+    if (!lock || lock.ownerId !== ownerId) return false;
+    this.state.workerLock = null;
+    this.#persist();
+    return true;
+  }
+
+  currentWorkerLock() {
+    return this.state.workerLock;
   }
 
   observeLatency(ms) {

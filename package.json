@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
+    "lint": "node --check src/*.js src/**/*.js test/*.js test/**/*.js",
+    "security": "node scripts/security_check.js",
     "test": "rm -rf .test-data && DATA_DIR=.test-data node --test --test-concurrency=1"
   }
 }

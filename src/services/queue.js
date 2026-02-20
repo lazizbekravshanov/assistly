@@ -6,8 +6,9 @@ function toMs(iso) {
 }
 
 export class PostQueue {
-  constructor({ retryIntervalMinutes = 5, store } = {}) {
+  constructor({ retryIntervalMinutes = 5, maxRetries = 3, store } = {}) {
     this.retryIntervalMs = retryIntervalMinutes * 60 * 1000;
+    this.maxRetries = maxRetries;
     this.store = store;
     this.items = store ? store.readQueue() : [];
 
@@ -67,31 +68,33 @@ export class PostQueue {
     );
   }
 
-  markFailed(id, errorMessage) {
+  markFailed(id, errorMessage, nowMs = Date.now()) {
     const item = this.items.find((x) => x.id === id);
     if (!item) return null;
 
     item.retries += 1;
     item.lastError = String(errorMessage || 'Unknown publish error');
 
-    if (item.retries >= 3) {
-      item.status = 'failed';
+    if (item.retries >= this.maxRetries) {
+      item.status = 'dead_letter';
+      item.deadLetterAt = new Date(nowMs).toISOString();
+      item.deadLetterReason = item.lastError;
       this.#persist();
       return item;
     }
 
     item.status = 'retrying';
-    item.nextRetryAt = new Date(Date.now() + this.retryIntervalMs).toISOString();
+    item.nextRetryAt = new Date(nowMs + this.retryIntervalMs).toISOString();
     this.#persist();
     return item;
   }
 
-  markPosted(id, remoteId) {
+  markPosted(id, remoteId, nowMs = Date.now()) {
     const item = this.items.find((x) => x.id === id);
     if (!item) return null;
     item.status = 'posted';
     item.remoteId = remoteId;
-    item.postedAt = new Date().toISOString();
+    item.postedAt = new Date(nowMs).toISOString();
     item.nextRetryAt = null;
     this.#persist();
     return item;
@@ -103,5 +106,9 @@ export class PostQueue {
     const changed = this.items.length < before;
     if (changed) this.#persist();
     return changed;
+  }
+
+  deadLetters() {
+    return this.items.filter((item) => item.status === 'dead_letter');
   }
 }

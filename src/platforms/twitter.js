@@ -4,6 +4,9 @@ export class TwitterClient {
   constructor(config) {
     this.token = config.accessToken;
     this.baseUrl = 'https://api.twitter.com/2';
+    this.httpTimeoutMs = config.httpTimeoutMs ?? 10000;
+    this.httpRetries = config.httpRetries ?? 2;
+    this.httpBackoffMs = config.httpBackoffMs ?? 250;
   }
 
   async post(content) {
@@ -16,7 +19,10 @@ export class TwitterClient {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json'
       },
-      body: { text: content }
+      body: { text: content },
+      timeoutMs: this.httpTimeoutMs,
+      retries: this.httpRetries,
+      backoffMs: this.httpBackoffMs
     });
 
     const id = data?.data?.id;
@@ -33,7 +39,10 @@ export class TwitterClient {
 
     const meResp = await apiRequest({
       url: `${this.baseUrl}/users/me?user.fields=public_metrics`,
-      headers: { Authorization: `Bearer ${this.token}` }
+      headers: { Authorization: `Bearer ${this.token}` },
+      timeoutMs: this.httpTimeoutMs,
+      retries: this.httpRetries,
+      backoffMs: this.httpBackoffMs
     });
 
     const me = meResp.data;
@@ -44,7 +53,10 @@ export class TwitterClient {
     if (userId) {
       const tweetsResp = await apiRequest({
         url: `${this.baseUrl}/users/${userId}/tweets?max_results=10&tweet.fields=public_metrics`,
-        headers: { Authorization: `Bearer ${this.token}` }
+        headers: { Authorization: `Bearer ${this.token}` },
+        timeoutMs: this.httpTimeoutMs,
+        retries: this.httpRetries,
+        backoffMs: this.httpBackoffMs
       });
 
       for (const tweet of tweetsResp.data?.data || []) {
