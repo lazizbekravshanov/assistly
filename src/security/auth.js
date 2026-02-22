@@ -117,7 +117,11 @@ export class SessionAuth {
       return { ok: false, reason: 'locked' };
     }
 
-    if (candidate === this.passphrase) {
+    const candidateBuf = Buffer.from(String(candidate));
+    const passphraseBuf = Buffer.from(String(this.passphrase));
+    const match = candidateBuf.length === passphraseBuf.length &&
+      crypto.timingSafeEqual(candidateBuf, passphraseBuf);
+    if (match) {
       session.authenticatedAt = now;
       session.lastSeenAt = now;
       session.failedAttempts = [];

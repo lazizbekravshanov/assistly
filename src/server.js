@@ -46,12 +46,16 @@ function toHeaderMap(headers) {
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/') {
-    return sendJson(res, 200, {
-      status: 'ok',
-      message: bot.startupMessage(),
-      metrics: await bot.metricsSnapshot(),
-      versions: config.versions
-    });
+    try {
+      return sendJson(res, 200, {
+        status: 'ok',
+        message: bot.startupMessage(),
+        metrics: await bot.metricsSnapshot(),
+        versions: config.versions
+      });
+    } catch {
+      return sendError(res, 503, 'service_unavailable', 'Unable to retrieve status.');
+    }
   }
 
   if (req.method === 'GET' && req.url === '/healthz') {
@@ -59,26 +63,34 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && req.url === '/readyz') {
-    return sendJson(res, 200, await bot.readinessSnapshot());
+    try {
+      return sendJson(res, 200, await bot.readinessSnapshot());
+    } catch {
+      return sendJson(res, 503, { ready: false, error: 'readiness check failed' });
+    }
   }
 
   if (req.method === 'GET' && req.url === '/metrics') {
-    const metrics = await bot.metricsSnapshot();
-    const latencyAvg = metrics.latencyMs.count > 0 ? metrics.latencyMs.total / metrics.latencyMs.count : 0;
-    const body = [
-      '# TYPE assistly_requests_total counter',
-      `assistly_requests_total ${metrics.requestCount}`,
-      '# TYPE assistly_errors_total counter',
-      `assistly_errors_total ${metrics.errorCount}`,
-      '# TYPE assistly_commands_total counter',
-      `assistly_commands_total ${metrics.commandCount}`,
-      '# TYPE assistly_latency_ms_max gauge',
-      `assistly_latency_ms_max ${metrics.latencyMs.max}`,
-      '# TYPE assistly_latency_ms_avg gauge',
-      `assistly_latency_ms_avg ${latencyAvg.toFixed(2)}`
-    ].join('\n');
-    res.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
-    return res.end(`${body}\n`);
+    try {
+      const metrics = await bot.metricsSnapshot();
+      const latencyAvg = metrics.latencyMs.count > 0 ? metrics.latencyMs.total / metrics.latencyMs.count : 0;
+      const body = [
+        '# TYPE assistly_requests_total counter',
+        `assistly_requests_total ${metrics.requestCount}`,
+        '# TYPE assistly_errors_total counter',
+        `assistly_errors_total ${metrics.errorCount}`,
+        '# TYPE assistly_commands_total counter',
+        `assistly_commands_total ${metrics.commandCount}`,
+        '# TYPE assistly_latency_ms_max gauge',
+        `assistly_latency_ms_max ${metrics.latencyMs.max}`,
+        '# TYPE assistly_latency_ms_avg gauge',
+        `assistly_latency_ms_avg ${latencyAvg.toFixed(2)}`
+      ].join('\n');
+      res.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
+      return res.end(`${body}\n`);
+    } catch {
+      return sendError(res, 503, 'service_unavailable', 'Unable to retrieve metrics.');
+    }
   }
 
   if (req.method !== 'POST' || req.url !== '/webhook') {

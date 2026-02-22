@@ -153,6 +153,10 @@ function mergeConfig(base) {
     },
     schedule: {
       ...base.schedule,
+      minPostGapHours: parseNumber(
+        fromEnv('SCHEDULE_MIN_POST_GAP_HOURS', base.schedule.minPostGapHours),
+        base.schedule.minPostGapHours
+      ),
       maxRetries: parseNumber(fromEnv('SCHEDULE_MAX_RETRIES', base.schedule.maxRetries), base.schedule.maxRetries),
       workerLockSeconds: parseNumber(
         fromEnv('SCHEDULE_WORKER_LOCK_SECONDS', base.schedule.workerLockSeconds),
@@ -208,6 +212,9 @@ function validateConfig(cfg) {
   }
   if (!Number.isFinite(cfg.schedule.workerLockSeconds) || cfg.schedule.workerLockSeconds <= 0) {
     throw new Error('SCHEDULE_WORKER_LOCK_SECONDS must be a positive number.');
+  }
+  if (!Number.isFinite(cfg.schedule.minPostGapHours) || cfg.schedule.minPostGapHours < 0) {
+    throw new Error('SCHEDULE_MIN_POST_GAP_HOURS must be a non-negative number.');
   }
   for (const key of ['postDataDays', 'logsDays', 'approvalsDays', 'idempotencyDays', 'noncesDays']) {
     if (!Number.isFinite(cfg.retention[key]) || cfg.retention[key] <= 0) {
