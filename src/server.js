@@ -273,7 +273,18 @@ function startTelegramPolling() {
       });
     }
 
-    const commandText = text.startsWith('/') ? text.replace(/@\S+/, '') : text;
+    let commandText = text.startsWith('/') ? text.replace(/@\S+/, '') : text;
+
+    // Default /post from Telegram to target the telegram platform
+    const KNOWN_PLATFORMS = ['twitter', 'telegram', 'linkedin', 'all'];
+    const postMatch = commandText.match(/^\/post\s*(.*)/i);
+    if (postMatch) {
+      const rest = postMatch[1].trim();
+      const firstWord = rest.split(/\s+/)[0]?.toLowerCase() || '';
+      if (!KNOWN_PLATFORMS.includes(firstWord)) {
+        commandText = rest ? `/post telegram ${rest}` : '/post telegram';
+      }
+    }
 
     const envelope = {
       user_id: userId,
