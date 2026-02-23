@@ -24,7 +24,8 @@ const rateLimiter = new FixedWindowRateLimiter({
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
-  'Cache-Control': 'no-store'
+  'Cache-Control': 'no-store',
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains'
 };
 
 function sendJson(res, statusCode, body) {

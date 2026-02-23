@@ -80,7 +80,8 @@
     "maxTokens": 2048,
     "httpTimeoutMs": 30000,
     "httpRetries": 1,
-    "httpBackoffMs": 500
+    "httpBackoffMs": 500,
+    "cooldownSeconds": 30
   },
   "storage": {
     "engine": "json",

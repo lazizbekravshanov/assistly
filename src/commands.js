@@ -1,5 +1,10 @@
 import { scanContentSafety } from './security/content.js';
+import { hasInjectionRisk } from './security/injection.js';
 import { AiContentService } from './services/ai.js';
+
+let _lastAiCallMs = 0;
+
+export function _resetAiCooldown() { _lastAiCallMs = 0; }
 
 async function nextApprovalId(stateService) {
   let candidate = '';
@@ -206,12 +211,33 @@ async function executeAction(action, ctx) {
       return { ok: false, message: 'AI drafts are disabled. Set AI_ENABLED=true and provide AI_API_KEY.' };
     }
 
+    const cooldownMs = (config.ai.cooldownSeconds ?? 30) * 1000;
+    const now = Date.now();
+    if (now - _lastAiCallMs < cooldownMs) {
+      const waitSec = Math.ceil((cooldownMs - (now - _lastAiCallMs)) / 1000);
+      return { ok: false, message: `AI rate limit: wait ${waitSec}s before next /ai call.` };
+    }
+
+    if (hasInjectionRisk(topic)) {
+      logger.log('ai.injection_blocked', { traceId: ctx.traceId, topic });
+      return { ok: false, message: 'Topic contains disallowed patterns.' };
+    }
+
     const aiService = new AiContentService(config.ai);
     let drafts;
     try {
       drafts = await aiService.generateDrafts(topic);
+      _lastAiCallMs = Date.now();
     } catch (error) {
       return { ok: false, message: `AI generation failed: ${error.message}` };
+    }
+
+    for (const platform of ['twitter', 'telegram', 'linkedin']) {
+      const safety = scanContentSafety(drafts[platform].text);
+      if (!safety.safe) {
+        logger.log('ai.content_flagged', { traceId: ctx.traceId, platform, flags: safety.flags });
+        return { ok: false, message: `AI draft for ${platform} flagged: ${safety.flags.join(', ')}. Try a different topic.` };
+      }
     }
 
     const approvals = {};

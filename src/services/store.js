@@ -9,7 +9,7 @@ export class JsonFileStore {
     this.logsPath = path.join(this.dataDir, logsFile);
     this.statePath = path.join(this.dataDir, stateFile);
     this.mirror = mirror || null;
-    fs.mkdirSync(this.dataDir, { recursive: true });
+    fs.mkdirSync(this.dataDir, { recursive: true, mode: 0o700 });
   }
 
   readQueue() {
@@ -64,7 +64,7 @@ export class JsonFileStore {
 
   #writeJson(filePath, data) {
     const tempPath = `${filePath}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`;
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
     fs.renameSync(tempPath, filePath);
   }
 }

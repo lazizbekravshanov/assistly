@@ -176,7 +176,8 @@ function mergeConfig(base) {
       maxTokens: parseNumber(fromEnv('AI_MAX_TOKENS', base.ai?.maxTokens), base.ai?.maxTokens ?? 2048),
       httpTimeoutMs: parseNumber(fromEnv('AI_HTTP_TIMEOUT_MS', base.ai?.httpTimeoutMs), base.ai?.httpTimeoutMs ?? 30000),
       httpRetries: parseNumber(fromEnv('AI_HTTP_RETRIES', base.ai?.httpRetries), base.ai?.httpRetries ?? 1),
-      httpBackoffMs: parseNumber(fromEnv('AI_HTTP_BACKOFF_MS', base.ai?.httpBackoffMs), base.ai?.httpBackoffMs ?? 500)
+      httpBackoffMs: parseNumber(fromEnv('AI_HTTP_BACKOFF_MS', base.ai?.httpBackoffMs), base.ai?.httpBackoffMs ?? 500),
+      cooldownSeconds: parseNumber(fromEnv('AI_COOLDOWN_SECONDS', base.ai?.cooldownSeconds), base.ai?.cooldownSeconds ?? 30)
     },
     storage: {
       ...base.storage,
@@ -193,6 +194,9 @@ function mergeConfig(base) {
 function validateConfig(cfg) {
   if (!cfg.owner.passphrase) {
     throw new Error('Missing OWNER_PASSPHRASE.');
+  }
+  if (cfg.owner.passphrase.length < 12) {
+    throw new Error('OWNER_PASSPHRASE must be at least 12 characters.');
   }
   if (!cfg.owner.id) {
     throw new Error('Missing OWNER_ID.');
