@@ -159,11 +159,148 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+/* ── Telegram polling ─────────────────────────────────────────────── */
+
+const TELEGRAM_COMMANDS = [
+  { command: 'post', description: 'Post content to Telegram now' },
+  { command: 'schedule', description: 'Schedule a post (time content)' },
+  { command: 'status', description: 'Bot and queue status' },
+  { command: 'queue', description: 'View scheduled posts' },
+  { command: 'logs', description: 'Recent activity' },
+  { command: 'analytics', description: 'Platform analytics' },
+  { command: 'draft', description: 'Generate content drafts' },
+  { command: 'help', description: 'Show all commands' },
+  { command: 'signoff', description: 'End session' }
+];
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function formatTelegramReply(result) {
+  if (!result) return 'No response.';
+
+  const icon = result.ok ? '\u2705' : '\u274c';
+  const parts = [];
+
+  if (result.message) {
+    parts.push(`${icon} ${escapeHtml(result.message)}`);
+  } else {
+    parts.push(result.ok ? `${icon} Done.` : `${icon} Error.`);
+  }
+
+  if (result.confirmation && !result.message?.includes(result.confirmation)) {
+    parts.push(escapeHtml(result.confirmation));
+  }
+
+  if (result.data) {
+    const data = result.data;
+    if (Array.isArray(data)) {
+      for (const item of data.slice(0, 10)) {
+        const status = item.ok ? '\u2705' : '\u274c';
+        const label = item.platform || item.id || '';
+        parts.push(`${status} ${escapeHtml(label)}${item.error ? ': ' + escapeHtml(item.error) : ''}`);
+      }
+      if (data.length > 10) parts.push(`... and ${data.length - 10} more`);
+    } else if (typeof data === 'object') {
+      const lines = [];
+      for (const [k, v] of Object.entries(data)) {
+        if (v !== null && v !== undefined && typeof v !== 'object') {
+          lines.push(`<b>${escapeHtml(k)}</b>: ${escapeHtml(String(v))}`);
+        }
+      }
+      if (lines.length > 0) parts.push(lines.join('\n'));
+    }
+  }
+
+  const reply = parts.join('\n\n');
+  return reply.length > 4000 ? reply.slice(0, 3997) + '...' : reply;
+}
+
+const HELP_TEXT = `<b>Available commands:</b>
+
+/post [platform] [content] - Post content now
+/schedule [platform] [time] [content] - Schedule a post
+/status - Bot and queue status
+/queue - View scheduled posts
+/logs - Recent activity
+/analytics [platform] - Platform analytics
+/draft [topic] - Generate content drafts
+/help - Show this message
+/signoff - End session`;
+
+const telegramClient = bot.platformClients.telegram;
+
+function startTelegramPolling() {
+  if (!config.platforms.telegram.botToken) return;
+
+  const ownerChatId = config.platforms.telegram.ownerChatId;
+
+  telegramClient.setMyCommands(TELEGRAM_COMMANDS).then(() => {
+    console.log('Telegram bot commands registered.');
+  }).catch((err) => {
+    console.error('Failed to register Telegram commands:', err.message);
+  });
+
+  telegramClient.startPolling(async (message) => {
+    const chatId = message.chat.id;
+    const fromId = String(message.from?.id || '');
+    const text = (message.text || '').trim();
+
+    if (!text) return;
+
+    if (!ownerChatId || fromId !== String(ownerChatId)) {
+      await telegramClient.sendMessage(chatId, '\u26d4 Unauthorized.');
+      return;
+    }
+
+    if (text === '/help' || text === '/start') {
+      await telegramClient.sendMessage(chatId, HELP_TEXT);
+      return;
+    }
+
+    const now = Date.now();
+    const userId = config.owner.id;
+
+    if (!(await bot.auth.isAuthenticated(userId, now))) {
+      await bot.auth.authenticate({
+        userId,
+        candidate: config.owner.passphrase,
+        now
+      });
+    }
+
+    const commandText = text.startsWith('/') ? text.replace(/@\S+/, '') : text;
+
+    const envelope = {
+      user_id: userId,
+      channel: 'telegram',
+      thread_id: `tg_${chatId}`,
+      message_id: `tg_${message.message_id}`,
+      timestamp: new Date().toISOString(),
+      locale: 'en-US',
+      timezone: config.owner.timezone,
+      text: commandText
+    };
+
+    const result = await bot.processEvent(envelope);
+    const reply = formatTelegramReply(result);
+    await telegramClient.sendMessage(chatId, reply);
+  });
+
+  console.log('Telegram polling started.');
+}
+
 server.listen(PORT, () => {
   console.log(`assistly-social-bot listening on port ${PORT}`);
+  startTelegramPolling();
 });
 
 async function shutdown(signal) {
+  telegramClient.stopPolling();
   server.close(async () => {
     try {
       if (bot.backend) await bot.backend.close().catch(() => {});

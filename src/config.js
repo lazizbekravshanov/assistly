@@ -120,6 +120,11 @@ function mergeConfig(base) {
         ...base.platforms.telegram,
         botToken: fromEnv('TELEGRAM_BOT_TOKEN', base.platforms.telegram.botToken),
         channelId: fromEnv('TELEGRAM_CHANNEL_ID', base.platforms.telegram.channelId),
+        ownerChatId: fromEnv('TELEGRAM_OWNER_CHAT_ID', base.platforms.telegram.ownerChatId),
+        pollingIntervalMs: parseNumber(
+          fromEnv('TELEGRAM_POLLING_INTERVAL_MS', base.platforms.telegram.pollingIntervalMs),
+          2000
+        ),
         httpTimeoutMs: parseNumber(
           fromEnv('TELEGRAM_HTTP_TIMEOUT_MS', base.platforms.telegram.httpTimeoutMs),
           base.platforms.telegram.httpTimeoutMs

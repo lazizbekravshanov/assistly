@@ -39,6 +39,8 @@
     "telegram": {
       "botToken": "",
       "channelId": "",
+      "ownerChatId": "",
+      "pollingIntervalMs": 2000,
       "httpTimeoutMs": 10000,
       "httpRetries": 2,
       "httpBackoffMs": 250
