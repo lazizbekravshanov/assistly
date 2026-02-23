@@ -168,6 +168,16 @@ function mergeConfig(base) {
         base.schedule.workerLockSeconds
       )
     },
+    ai: {
+      ...base.ai,
+      enabled: parseBool(fromEnv('AI_ENABLED', base.ai?.enabled), base.ai?.enabled ?? false),
+      apiKey: fromEnv('AI_API_KEY', base.ai?.apiKey),
+      model: fromEnv('AI_MODEL', base.ai?.model || 'claude-sonnet-4-20250514'),
+      maxTokens: parseNumber(fromEnv('AI_MAX_TOKENS', base.ai?.maxTokens), base.ai?.maxTokens ?? 2048),
+      httpTimeoutMs: parseNumber(fromEnv('AI_HTTP_TIMEOUT_MS', base.ai?.httpTimeoutMs), base.ai?.httpTimeoutMs ?? 30000),
+      httpRetries: parseNumber(fromEnv('AI_HTTP_RETRIES', base.ai?.httpRetries), base.ai?.httpRetries ?? 1),
+      httpBackoffMs: parseNumber(fromEnv('AI_HTTP_BACKOFF_MS', base.ai?.httpBackoffMs), base.ai?.httpBackoffMs ?? 500)
+    },
     storage: {
       ...base.storage,
       engine: fromEnv('STORAGE_ENGINE', base.storage.engine),
@@ -202,6 +212,9 @@ function validateConfig(cfg) {
   }
   if (!cfg.owner.sessionSecret) {
     throw new Error('Missing OWNER_SESSION_SECRET.');
+  }
+  if (cfg.ai.enabled && !cfg.ai.apiKey) {
+    throw new Error('AI_ENABLED=true requires AI_API_KEY.');
   }
   if (cfg.storage.engine === 'postgres' && !cfg.storage.databaseUrl) {
     throw new Error('STORAGE_ENGINE=postgres requires DATABASE_URL.');

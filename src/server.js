@@ -168,6 +168,7 @@ const TELEGRAM_COMMANDS = [
   { command: 'queue', description: 'View scheduled posts' },
   { command: 'logs', description: 'Recent activity' },
   { command: 'analytics', description: 'Platform analytics' },
+  { command: 'ai', description: 'AI-generate content drafts for all platforms' },
   { command: 'draft', description: 'Generate content drafts' },
   { command: 'help', description: 'Show all commands' },
   { command: 'signoff', description: 'End session' }
@@ -194,6 +195,22 @@ function formatTelegramReply(result) {
 
   if (result.confirmation && !result.message?.includes(result.confirmation)) {
     parts.push(escapeHtml(result.confirmation));
+  }
+
+  if (result.data?.drafts && result.data?.approvals) {
+    const { topic, drafts, approvals } = result.data;
+    parts.length = 0;
+    parts.push(`<b>AI Drafts</b> \u2014 ${escapeHtml(topic)}`);
+    for (const platform of ['twitter', 'telegram', 'linkedin']) {
+      const draft = drafts[platform];
+      const id = approvals[platform];
+      parts.push(
+        `\n<b>${escapeHtml(platform)}</b> (${draft.chars} chars):\n<pre>${escapeHtml(draft.text)}</pre>\n` +
+        `\u2705 <code>/approve ${id}</code>\n\u274c <code>/reject ${id}</code>`
+      );
+    }
+    const reply = parts.join('\n');
+    return reply.length > 4000 ? reply.slice(0, 3997) + '...' : reply;
   }
 
   if (result.data) {
@@ -228,6 +245,7 @@ const HELP_TEXT = `<b>Available commands:</b>
 /queue - View scheduled posts
 /logs - Recent activity
 /analytics [platform] - Platform analytics
+/ai [topic] - AI-generate drafts for all platforms
 /draft [topic] - Generate content drafts
 /help - Show this message
 /signoff - End session`;

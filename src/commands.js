@@ -1,4 +1,5 @@
 import { scanContentSafety } from './security/content.js';
+import { AiContentService } from './services/ai.js';
 
 async function nextApprovalId(stateService) {
   let candidate = '';
@@ -53,6 +54,9 @@ function summarizeForConfirm(name, result) {
   }
   if (name === '/approve') {
     return 'Approval executed.';
+  }
+  if (name === '/ai') {
+    return 'AI drafts generated. Use /approve or /reject on each.';
   }
   return 'Command executed.';
 }
@@ -192,6 +196,44 @@ async function executeAction(action, ctx) {
     }
 
     return { ok: false, message: 'Usage: /dlq [list|replay]' };
+  }
+
+  if (name === '/ai') {
+    const topic = args.join(' ').trim();
+    if (!topic) return { ok: false, message: 'Usage: /ai [topic]' };
+
+    if (!config.ai?.enabled) {
+      return { ok: false, message: 'AI drafts are disabled. Set AI_ENABLED=true and provide AI_API_KEY.' };
+    }
+
+    const aiService = new AiContentService(config.ai);
+    let drafts;
+    try {
+      drafts = await aiService.generateDrafts(topic);
+    } catch (error) {
+      return { ok: false, message: `AI generation failed: ${error.message}` };
+    }
+
+    const approvals = {};
+    for (const platform of ['twitter', 'telegram', 'linkedin']) {
+      const id = await nextApprovalId(stateService);
+      await stateService.addApproval({
+        id,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        command: '/post',
+        args: [platform, drafts[platform].text],
+        source: 'ai',
+        topic
+      });
+      approvals[platform] = id;
+    }
+
+    return {
+      ok: true,
+      message: 'AI drafts generated.',
+      data: { topic, drafts, approvals }
+    };
   }
 
   if (name === '/draft') {

@@ -73,6 +73,15 @@
     "webhookUrl": "",
     "timeoutMs": 5000
   },
+  "ai": {
+    "enabled": false,
+    "apiKey": "",
+    "model": "claude-sonnet-4-20250514",
+    "maxTokens": 2048,
+    "httpTimeoutMs": 30000,
+    "httpRetries": 1,
+    "httpBackoffMs": 500
+  },
   "storage": {
     "engine": "json",
     "databaseUrl": "",
