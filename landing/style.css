@@ -266,6 +266,34 @@ body {
   max-width: 480px;
 }
 
+.hero-quote {
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.7;
+  margin-bottom: 28px;
+  max-width: 480px;
+  border: none;
+  padding: 0;
+}
+
+.hero-quote-text::before {
+  content: "\201C";
+}
+
+.hero-quote-text::after {
+  content: "\201D";
+}
+
+.hero-quote-author {
+  display: block;
+  font-style: normal;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
 .hero-actions {
   display: flex;
   align-items: center;
@@ -675,6 +703,11 @@ body {
   .hero-subtitle {
     font-size: 16px;
     max-width: 100%;
+  }
+
+  .hero-quote {
+    max-width: 100%;
+    font-size: 14px;
   }
 
   .hero-actions {
