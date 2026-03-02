@@ -1,4 +1,4 @@
-/* ── Assistly — Background Service Worker ── */
+/* ── derot — Background Service Worker ── */
 
 const DEFAULT_STATE = {
   focusActive: false,

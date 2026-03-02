@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>derot — Focus & Deep Work</title>
+  <meta name="description" content="Block distractions, clean up pages, and stay focused. A free Chrome extension built for students and deep workers.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner container">
+      <a href="#" class="nav-logo">
+        <div class="logo-icon">d</div>
+        <span class="logo-text">derot</span>
+      </a>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+          <span class="theme-icon theme-icon--light">&#9789;</span>
+          <span class="theme-icon theme-icon--dark">&#9788;</span>
+        </button>
+        <a href="https://chromewebstore.google.com/detail/derot/placeholder" class="btn btn-primary btn-sm">Add to Chrome</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="hero-title">Focus deeper.<br>Distract less.</h1>
+        <p class="hero-subtitle">A free Chrome extension that blocks distracting sites, cleans up cluttered pages, and helps you build a focused work habit — no accounts, no servers, no data collection.</p>
+        <div class="hero-actions">
+          <a href="https://chromewebstore.google.com/detail/derot/placeholder" class="btn btn-primary btn-lg">Add to Chrome &mdash; It's Free</a>
+          <a href="https://github.com/yourusername/derot" class="btn btn-ghost">View on GitHub &rarr;</a>
+        </div>
+      </div>
+      <div class="hero-mockup">
+        <div class="mockup-popup">
+          <div class="mockup-header">
+            <div class="mockup-logo">d</div>
+            <span class="mockup-title">derot</span>
+            <div class="mockup-toggle">
+              <div class="mockup-toggle-track">
+                <div class="mockup-toggle-thumb"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-stats">
+            <div class="mockup-stat">
+              <div class="mockup-stat-value">2:34</div>
+              <div class="mockup-stat-label">Focus time</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-value">5</div>
+              <div class="mockup-stat-label">Blocked</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-value">3</div>
+              <div class="mockup-stat-label">Sessions</div>
+            </div>
+          </div>
+          <div class="mockup-timer">
+            <div class="mockup-timer-ring"></div>
+            <div class="mockup-timer-text">24:38</div>
+          </div>
+          <div class="mockup-sites">
+            <div class="mockup-site-pill">youtube.com</div>
+            <div class="mockup-site-pill">twitter.com</div>
+            <div class="mockup-site-pill">reddit.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="container">
+      <h2 class="section-title fade-up">Everything you need to stay focused</h2>
+      <div class="features-grid">
+        <div class="feature-card fade-up">
+          <div class="feature-icon feature-icon--red">&#128683;</div>
+          <h3 class="feature-title">Site Blocking</h3>
+          <p class="feature-desc">Block distracting websites during focus sessions. Add custom sites and toggle blocking instantly.</p>
+        </div>
+        <div class="feature-card fade-up">
+          <div class="feature-icon feature-icon--green">&#129529;</div>
+          <h3 class="feature-title">Page Cleanup</h3>
+          <p class="feature-desc">Hide ads, sidebars, and clutter from any page. Read and work with a clean interface.</p>
+        </div>
+        <div class="feature-card fade-up">
+          <div class="feature-icon feature-icon--orange">&#9201;</div>
+          <h3 class="feature-title">Pomodoro Timer</h3>
+          <p class="feature-desc">Built-in focus timer with customizable work and break intervals to keep you on track.</p>
+        </div>
+        <div class="feature-card fade-up">
+          <div class="feature-icon feature-icon--purple">&#128202;</div>
+          <h3 class="feature-title">Focus Dashboard</h3>
+          <p class="feature-desc">Track your daily focus time, sessions, and streaks. See your progress at a glance.</p>
+        </div>
+        <div class="feature-card fade-up">
+          <div class="feature-icon feature-icon--brown">&#9749;</div>
+          <h3 class="feature-title">Break System</h3>
+          <p class="feature-desc">Guided breathing exercises and timed breaks so you recharge without losing momentum.</p>
+        </div>
+        <div class="feature-card fade-up">
+          <div class="feature-icon feature-icon--blue">&#127769;</div>
+          <h3 class="feature-title">Dark Mode</h3>
+          <p class="feature-desc">Full dark theme support that's easy on the eyes during late-night study sessions.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="how-it-works">
+    <div class="container">
+      <h2 class="section-title fade-up">How it works</h2>
+      <div class="steps">
+        <div class="step fade-up">
+          <div class="step-number">1</div>
+          <h3 class="step-title">Toggle focus mode</h3>
+          <p class="step-desc">One click to activate. Your blocklist and timer start immediately.</p>
+        </div>
+        <div class="step-connector fade-up"></div>
+        <div class="step fade-up">
+          <div class="step-number">2</div>
+          <h3 class="step-title">Distractions disappear</h3>
+          <p class="step-desc">Blocked sites are redirected and page clutter is hidden automatically.</p>
+        </div>
+        <div class="step-connector fade-up"></div>
+        <div class="step fade-up">
+          <div class="step-number">3</div>
+          <h3 class="step-title">Track your progress</h3>
+          <p class="step-desc">Review focus time, session count, and streaks on your personal dashboard.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats / Social Proof -->
+  <section class="stats">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item fade-up">
+          <div class="stat-value">10+</div>
+          <div class="stat-label">Sites blocked by default</div>
+        </div>
+        <div class="stat-item fade-up">
+          <div class="stat-value">Zero</div>
+          <div class="stat-label">Dependencies</div>
+        </div>
+        <div class="stat-item fade-up">
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Private — no accounts, no servers</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="cta-banner">
+    <div class="container">
+      <h2 class="cta-title fade-up">Ready to focus?</h2>
+      <p class="cta-subtitle fade-up">Join thousands of students and deep workers who use derot to stay on track.</p>
+      <a href="https://chromewebstore.google.com/detail/derot/placeholder" class="btn btn-primary btn-lg fade-up">Add to Chrome &mdash; It's Free</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <div class="nav-logo">
+          <div class="logo-icon logo-icon--sm">d</div>
+          <span class="logo-text">derot</span>
+        </div>
+        <p class="footer-tagline">Built for students and deep workers.</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/yourusername/derot">GitHub</a>
+        <a href="https://github.com/yourusername/derot/blob/main/LICENSE">License</a>
+        <a href="https://chromewebstore.google.com/detail/derot/placeholder">Chrome Web Store</a>
+      </div>
+      <p class="footer-copy">&copy; 2025 Lazizbek Ravshanov. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

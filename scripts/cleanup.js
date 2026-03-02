@@ -1,4 +1,4 @@
-/* ── Assistly Page Cleanup Content Script ── */
+/* ── derot Page Cleanup Content Script ── */
 
 (async function () {
   const { state } = await chrome.storage.local.get("state");
@@ -18,9 +18,9 @@
   });
 
   function applyCleanup() {
-    if (document.documentElement.classList.contains("assistly-cleanup-active")) return;
+    if (document.documentElement.classList.contains("derot-cleanup-active")) return;
 
-    document.documentElement.classList.add("assistly-cleanup-active");
+    document.documentElement.classList.add("derot-cleanup-active");
 
     // Build combined selectors
     const selectors = [
@@ -31,7 +31,7 @@
     if (selectors.length === 0) return;
 
     const style = document.createElement("style");
-    style.id = "assistly-cleanup-style";
+    style.id = "derot-cleanup-style";
     style.textContent = selectors.join(",\n") + " { display: none !important; }";
     document.head.appendChild(style);
 
@@ -41,8 +41,8 @@
   }
 
   function removeCleanup() {
-    document.documentElement.classList.remove("assistly-cleanup-active");
-    const style = document.getElementById("assistly-cleanup-style");
+    document.documentElement.classList.remove("derot-cleanup-active");
+    const style = document.getElementById("derot-cleanup-style");
     if (style) style.remove();
   }
 

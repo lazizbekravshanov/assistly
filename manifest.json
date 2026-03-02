@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Assistly — Focus & Deep Work",
+  "name": "derot — Focus & Deep Work",
   "version": "1.0.0",
   "description": "Block distractions, clean up pages, and stay focused. Built for students and deep workers.",
   "permissions": ["storage", "tabs", "activeTab", "alarms", "webNavigation", "notifications"],

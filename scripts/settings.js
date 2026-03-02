@@ -1,4 +1,4 @@
-/* ── Assistly Settings Controller ── */
+/* ── derot Settings Controller ── */
 
 const $ = (sel) => document.querySelector(sel);
 

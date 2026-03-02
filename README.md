@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icons/icon-128.png" alt="Assistly" width="80" height="80">
+  <img src="icons/icon-128.png" alt="derot" width="80" height="80">
 </p>
 
-<h1 align="center">Assistly</h1>
+<h1 align="center">derot</h1>
 
 <p align="center">
   <strong>Focus & Deep Work — Chrome Extension</strong><br>
@@ -17,9 +17,9 @@
 
 ---
 
-## What is Assistly?
+## What is derot?
 
-Assistly is a Chrome extension built for college students and remote workers who want to enter deep work. It blocks distracting websites during focus sessions, cleans up allowed pages by hiding ads and sidebars, tracks your focus stats over time, and includes a built-in Pomodoro timer.
+derot is a Chrome extension built for college students and remote workers who want to enter deep work. It blocks distracting websites during focus sessions, cleans up allowed pages by hiding ads and sidebars, tracks your focus stats over time, and includes a built-in Pomodoro timer.
 
 No accounts. No servers. No dependencies. Everything runs locally in your browser.
 
@@ -69,11 +69,11 @@ Apple-minimal design system with full light/dark support. Theme switches instant
 
 1. **Clone** the repository:
    ```bash
-   git clone https://github.com/yourusername/assistly.git
+   git clone https://github.com/yourusername/derot.git
    ```
 2. Open Chrome → navigate to `chrome://extensions`
 3. Enable **Developer mode** (top-right toggle)
-4. Click **Load unpacked** → select the `assistly` folder
+4. Click **Load unpacked** → select the `derot` folder
 5. **Pin** the extension to your toolbar
 
 ---
@@ -94,7 +94,7 @@ Apple-minimal design system with full light/dark support. Theme switches instant
 ## Architecture
 
 ```
-assistly/
+derot/
 ├── manifest.json              # Extension manifest (MV3)
 ├── icons/                     # 16 / 32 / 48 / 128 px PNGs
 │
@@ -167,7 +167,7 @@ No build step needed. Edit any file and reload the extension:
 
 1. Make changes to any `.js`, `.css`, or `.html` file
 2. Go to `chrome://extensions`
-3. Click the **refresh** icon on the Assistly card
+3. Click the **refresh** icon on the derot card
 4. Reopen the popup or reload the page
 
 ---

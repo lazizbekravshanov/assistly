@@ -1,4 +1,4 @@
-/* ── Assistly Blocked Page Controller ── */
+/* ── derot Blocked Page Controller ── */
 
 const $ = (sel) => document.querySelector(sel);
 

@@ -1,4 +1,4 @@
-/* ── Assistly Dashboard Controller ── */
+/* ── derot Dashboard Controller ── */
 
 const $ = (sel) => document.querySelector(sel);
 
