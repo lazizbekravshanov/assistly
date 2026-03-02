@@ -440,3 +440,210 @@ body {
   font-weight: 500;
   color: var(--danger);
 }
+
+/* ── Milestone Toast ── */
+
+.milestone-toast {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  background: var(--surface);
+  border: 1px solid var(--accent-med);
+  border-radius: 12px;
+  padding: 12px 16px;
+  z-index: 50;
+  animation: slideUp 0.4s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.milestone-toast.hidden { display: none; }
+.milestone-content { display: flex; align-items: center; gap: 10px; }
+.milestone-emoji { font-size: 24px; }
+.milestone-text { display: flex; flex-direction: column; gap: 2px; }
+.milestone-text strong { font-size: 14px; color: var(--accent-text); }
+.milestone-sub { font-size: 12px; color: var(--text-muted); }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Confetti Canvas ── */
+
+.confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 200;
+}
+
+/* ── Session Summary Modal ── */
+
+.summary-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.summary-overlay.hidden { display: none; }
+
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  width: 300px;
+  animation: fadeUp 0.25s ease both;
+}
+
+.summary-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.summary-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.summary-share {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: 8px;
+}
+.summary-share:hover { opacity: 0.9; }
+
+.summary-close {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ── Hardcore Lock State ── */
+
+.focus-card.locked {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.lock-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--danger);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* ── Progress Ring ── */
+
+.progress-ring-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  width: 100px;
+  height: 100px;
+}
+
+.progress-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 6;
+}
+
+.progress-ring-fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.progress-ring-text {
+  position: absolute;
+  text-align: center;
+}
+
+.progress-ring-pct {
+  font-size: 20px;
+  font-weight: 700;
+  display: block;
+  color: var(--text);
+}
+
+.progress-ring-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Rank Badge ── */
+
+.rank-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  margin-left: 8px;
+}

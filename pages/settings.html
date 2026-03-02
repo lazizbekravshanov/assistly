@@ -56,8 +56,51 @@
       </div>
     </div>
 
-    <!-- Data -->
+    <!-- Hardcore Mode -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.20s both;">
+      <h2 class="section-title">Hardcore Mode</h2>
+      <div class="cleanup-row">
+        <div class="cleanup-info">
+          <span class="cleanup-title">Lock focus sessions</span>
+          <span class="cleanup-desc">Prevents stopping focus until pomodoro ends. Use with caution!</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="hardcoreToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Daily Focus Goal -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.22s both;">
+      <h2 class="section-title">Daily Focus Goal</h2>
+      <div class="goal-presets" id="goalPresets">
+        <button class="goal-preset" data-goal="30">30m</button>
+        <button class="goal-preset" data-goal="60">1h</button>
+        <button class="goal-preset" data-goal="90">1.5h</button>
+        <button class="goal-preset" data-goal="120">2h</button>
+        <button class="goal-preset" data-goal="180">3h</button>
+        <button class="goal-preset" data-goal="240">4h</button>
+      </div>
+    </div>
+
+    <!-- New Tab Override -->
     <div class="section" style="animation: fadeUp 0.3s ease 0.24s both;">
+      <h2 class="section-title">New Tab Page</h2>
+      <div class="cleanup-row">
+        <div class="cleanup-info">
+          <span class="cleanup-title">Focus new tab</span>
+          <span class="cleanup-desc">Replace Chrome's new tab with a derot focus page</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="newTabToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Data -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.28s both;">
       <h2 class="section-title">Data</h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">This will permanently delete all focus statistics, streaks, and blocked site counts.</p>
       <button class="danger-btn" id="resetBtn">Reset all statistics</button>

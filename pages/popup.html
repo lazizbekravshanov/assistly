@@ -46,6 +46,19 @@
     <span id="breakTimer" class="break-timer">5:00</span>
   </div>
 
+  <!-- Progress Ring -->
+  <div class="progress-ring-wrap" id="goalRingWrap">
+    <svg class="progress-ring-svg" viewBox="0 0 100 100">
+      <circle class="progress-ring-bg" cx="50" cy="50" r="42"/>
+      <circle class="progress-ring-fg" id="goalRingFg" cx="50" cy="50" r="42"
+        stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+    </svg>
+    <div class="progress-ring-text">
+      <span class="progress-ring-pct" id="goalPct">0%</span>
+      <span class="progress-ring-label">of goal</span>
+    </div>
+  </div>
+
   <!-- Stats Grid -->
   <div class="stats-grid">
     <div class="stat-card stat-blocked">
@@ -79,6 +92,43 @@
       <button id="editSitesBtn" class="sites-edit">Edit →</button>
     </div>
     <div class="sites-pills" id="sitesPills"></div>
+  </div>
+
+  <!-- Milestone Toast -->
+  <div id="milestoneToast" class="milestone-toast hidden">
+    <div class="milestone-content">
+      <span class="milestone-emoji">🏆</span>
+      <div class="milestone-text">
+        <strong id="milestoneLabel"></strong>
+        <span id="milestoneSub" class="milestone-sub"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+  <!-- Session Summary Modal -->
+  <div id="summaryOverlay" class="summary-overlay hidden">
+    <div class="summary-card">
+      <h3 class="summary-title">Session Complete!</h3>
+      <div class="summary-stats">
+        <div class="summary-stat">
+          <span class="summary-value" id="summaryDuration">0m</span>
+          <span class="summary-label">Duration</span>
+        </div>
+        <div class="summary-stat">
+          <span class="summary-value" id="summaryBlocked">0</span>
+          <span class="summary-label">Blocked</span>
+        </div>
+        <div class="summary-stat">
+          <span class="summary-value" id="summaryStreak">0</span>
+          <span class="summary-label">Streak</span>
+        </div>
+      </div>
+      <button class="summary-share" id="summaryShare">Copy to share</button>
+      <button class="summary-close" id="summaryClose">Close</button>
+    </div>
   </div>
 
   <script src="../scripts/popup.js"></script>

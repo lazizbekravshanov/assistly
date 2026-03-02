@@ -15,6 +15,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyTheme(state.theme);
   renderSiteList();
   renderCleanup();
+  renderHardcore();
+  renderGoalPresets();
+  renderNewTab();
 });
 
 /* ── Theme ── */
@@ -144,6 +147,60 @@ function updateCleanupTags() {
   const tags = $("#cleanupTags");
   tags.classList.toggle("disabled", !state.cleanupEnabled);
 }
+
+/* ── Hardcore Mode ── */
+
+function renderHardcore() {
+  $("#hardcoreToggle").checked = state.hardcoreMode || false;
+}
+
+$("#hardcoreToggle").addEventListener("change", async () => {
+  const enabling = $("#hardcoreToggle").checked;
+  if (enabling && !confirm("Hardcore mode will lock your focus session until the pomodoro ends. You can still triple-click to override. Enable?")) {
+    $("#hardcoreToggle").checked = false;
+    return;
+  }
+  state.hardcoreMode = enabling;
+  await chrome.runtime.sendMessage({
+    type: "updateSettings",
+    settings: { hardcoreMode: enabling }
+  });
+});
+
+/* ── Daily Focus Goal ── */
+
+function renderGoalPresets() {
+  const current = state.focusGoal || 120;
+  document.querySelectorAll(".goal-preset").forEach((btn) => {
+    btn.classList.toggle("active", Number(btn.dataset.goal) === current);
+  });
+}
+
+document.querySelectorAll(".goal-preset").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const goal = Number(btn.dataset.goal);
+    state.focusGoal = goal;
+    await chrome.runtime.sendMessage({
+      type: "updateSettings",
+      settings: { focusGoal: goal }
+    });
+    renderGoalPresets();
+  });
+});
+
+/* ── New Tab Toggle ── */
+
+function renderNewTab() {
+  $("#newTabToggle").checked = state.newTabEnabled !== false;
+}
+
+$("#newTabToggle").addEventListener("change", async () => {
+  state.newTabEnabled = $("#newTabToggle").checked;
+  await chrome.runtime.sendMessage({
+    type: "updateSettings",
+    settings: { newTabEnabled: state.newTabEnabled }
+  });
+});
 
 /* ── Reset Stats ── */
 

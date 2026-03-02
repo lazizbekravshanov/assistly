@@ -20,8 +20,17 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
+  "commands": {
+    "toggle-focus": {
+      "suggested_key": { "default": "Alt+Shift+F" },
+      "description": "Toggle focus mode"
+    }
+  },
   "background": {
     "service_worker": "scripts/background.js"
+  },
+  "chrome_url_overrides": {
+    "newtab": "pages/newtab.html"
   },
   "content_scripts": [
     {

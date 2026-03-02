@@ -54,6 +54,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Start breathing guide
   startBreathing();
 
+  // Hide break button in hardcore mode
+  if (state?.hardcoreMode && state?.hardcoreLockUntil && Date.now() < state.hardcoreLockUntil) {
+    $("#breakBtn").style.display = "none";
+  }
+
   // Check if already on break
   if (state?.breakActive && state?.breakEndTime) {
     showBreakOverlay(state.breakEndTime);
