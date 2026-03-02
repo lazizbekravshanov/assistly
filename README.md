@@ -69,7 +69,7 @@ Apple-minimal design system with full light/dark support. Theme switches instant
 
 1. **Clone** the repository:
    ```bash
-   git clone https://github.com/yourusername/derot.git
+   git clone https://github.com/lazizbekravshanov/derot.git
    ```
 2. Open Chrome → navigate to `chrome://extensions`
 3. Enable **Developer mode** (top-right toggle)
@@ -174,4 +174,4 @@ No build step needed. Edit any file and reload the extension:
 
 ## License
 
-MIT — [Lazizbek Ravshanov](https://github.com/yourusername)
+MIT — [Lazizbek Ravshanov](https://github.com/lazizbekravshanov)
