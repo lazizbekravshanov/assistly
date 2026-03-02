@@ -1,0 +1,442 @@
+/* ── Assistly Popup Styles ── */
+
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --border: rgba(0, 0, 0, 0.06);
+  --accent: #5856d6;
+  --accent-soft: rgba(88, 86, 214, 0.06);
+  --accent-med: rgba(88, 86, 214, 0.12);
+  --accent-text: #4a48c4;
+  --text: #1d1d1f;
+  --text-muted: #86868b;
+  --danger: #ff3b30;
+  --danger-soft: rgba(255, 59, 48, 0.06);
+  --success: #34c759;
+  --toggle-bg: #e5e5ea;
+}
+
+[data-theme="dark"] {
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #7d7aff;
+  --accent-soft: rgba(125, 122, 255, 0.1);
+  --accent-med: rgba(125, 122, 255, 0.18);
+  --accent-text: #9d9bff;
+  --text: #f5f5f7;
+  --text-muted: #636366;
+  --danger: #ff453a;
+  --danger-soft: rgba(255, 69, 58, 0.1);
+  --success: #30d158;
+  --toggle-bg: #39393d;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'DM Sans', 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 16px;
+  overflow-x: hidden;
+}
+
+/* ── Animations ── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header { animation: fadeUp 0.3s ease both; }
+.focus-card { animation: fadeUp 0.3s ease 0.08s both; }
+.break-banner { animation: fadeUp 0.3s ease 0.12s both; }
+.stats-grid { animation: fadeUp 0.3s ease 0.16s both; }
+.pomodoro-card { animation: fadeUp 0.3s ease 0.24s both; }
+.sites-section { animation: fadeUp 0.3s ease 0.32s both; }
+
+/* ── Header ── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.header-left { display: flex; align-items: center; }
+.header-right { display: flex; align-items: center; gap: 4px; }
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.logo-text {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--surface);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.icon-btn:hover {
+  background: var(--accent-soft);
+}
+
+/* ── Focus Toggle ── */
+
+.focus-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  transition: all 0.25s ease;
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .focus-card {
+  box-shadow: none;
+}
+
+.focus-card.active {
+  border-color: var(--accent-med);
+  background: var(--accent-soft);
+}
+
+.focus-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.focus-emoji {
+  font-size: 28px;
+  line-height: 1;
+  transition: filter 0.3s;
+}
+
+.focus-card.active .focus-emoji {
+  filter: drop-shadow(0 0 8px rgba(88, 86, 214, 0.4));
+}
+
+[data-theme="dark"] .focus-card.active .focus-emoji {
+  filter: drop-shadow(0 0 8px rgba(125, 122, 255, 0.5));
+}
+
+.focus-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.focus-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.focus-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Toggle Switch ── */
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--toggle-bg);
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background 0.25s;
+}
+
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.25s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.toggle input:checked + .toggle-slider {
+  background: var(--accent);
+}
+
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* ── Break Banner ── */
+
+.break-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-med);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.break-banner.hidden {
+  display: none;
+}
+
+.break-icon { font-size: 16px; }
+.break-label { flex: 1; color: var(--accent-text); }
+
+.break-timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+/* ── Stats Grid ── */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .stat-card {
+  box-shadow: none;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.stat-blocked .stat-value { color: var(--danger); }
+.stat-focus .stat-value { color: var(--success); }
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── Pomodoro ── */
+
+.pomodoro-card {
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .pomodoro-card {
+  box-shadow: none;
+}
+
+.pomodoro-header {
+  margin-bottom: 12px;
+}
+
+.pomodoro-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.pomodoro-presets {
+  display: flex;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 2px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.preset {
+  flex: 1;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.preset.active {
+  background: var(--surface);
+  color: var(--accent-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .preset.active {
+  box-shadow: none;
+}
+
+.pomodoro-timer {
+  font-size: 40px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.pomodoro-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+
+.pomodoro-btn:hover {
+  opacity: 0.9;
+}
+
+/* ── Blocked Sites ── */
+
+.sites-section {
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .sites-section {
+  box-shadow: none;
+}
+
+.sites-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sites-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.sites-edit {
+  border: none;
+  background: none;
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.sites-edit:hover {
+  text-decoration: underline;
+}
+
+.sites-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.site-pill {
+  padding: 4px 10px;
+  background: var(--danger-soft);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--danger);
+}

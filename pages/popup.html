@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=360">
+  <title>Assistly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">A</div>
+        <span class="logo-text">assistly</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <button id="themeToggle" class="icon-btn" title="Toggle theme">🌙</button>
+      <button id="statsBtn" class="icon-btn" title="View stats">📊</button>
+    </div>
+  </header>
+
+  <!-- Focus Toggle -->
+  <div id="focusCard" class="focus-card">
+    <div class="focus-info">
+      <span id="focusEmoji" class="focus-emoji">😴</span>
+      <div class="focus-text">
+        <span id="focusTitle" class="focus-title">Start focusing</span>
+        <span id="focusSub" class="focus-sub">Distractions are allowed</span>
+      </div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="focusToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <!-- Break Banner -->
+  <div id="breakBanner" class="break-banner hidden">
+    <span class="break-icon">☕</span>
+    <span class="break-label">Break active</span>
+    <span id="breakTimer" class="break-timer">5:00</span>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card stat-blocked">
+      <span class="stat-value" id="blockedToday">0</span>
+      <span class="stat-label">Blocked today</span>
+    </div>
+    <div class="stat-card stat-focus">
+      <span class="stat-value" id="focusTime">0m</span>
+      <span class="stat-label">Focus time</span>
+    </div>
+  </div>
+
+  <!-- Pomodoro -->
+  <div class="pomodoro-card">
+    <div class="pomodoro-header">
+      <span class="pomodoro-label">Pomodoro</span>
+    </div>
+    <div class="pomodoro-presets" id="pomodoroPresets">
+      <button class="preset active" data-time="1500">25m</button>
+      <button class="preset" data-time="2700">45m</button>
+      <button class="preset" data-time="3600">60m</button>
+    </div>
+    <div class="pomodoro-timer" id="pomodoroDisplay">25:00</div>
+    <button class="pomodoro-btn" id="pomodoroBtn">Start</button>
+  </div>
+
+  <!-- Blocked Sites -->
+  <div class="sites-section">
+    <div class="sites-header">
+      <span class="sites-label">Blocked sites</span>
+      <button id="editSitesBtn" class="sites-edit">Edit →</button>
+    </div>
+    <div class="sites-pills" id="sitesPills"></div>
+  </div>
+
+  <script src="../scripts/popup.js"></script>
+</body>
+</html>

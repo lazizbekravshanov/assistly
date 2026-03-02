@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Assistly — Focus & Deep Work",
+  "version": "1.0.0",
+  "description": "Block distractions, clean up pages, and stay focused. Built for students and deep workers.",
+  "permissions": ["storage", "tabs", "activeTab", "alarms", "webNavigation", "notifications"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "pages/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["scripts/cleanup.js"],
+      "css": ["styles/cleanup.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pages/*", "styles/*", "scripts/*", "icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

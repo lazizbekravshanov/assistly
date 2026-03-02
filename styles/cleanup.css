@@ -1,0 +1,16 @@
+/* ── Assistly Cleanup Injection Styles ── */
+
+/* Hide common ad iframes */
+.assistly-cleanup-active iframe[src*="doubleclick"],
+.assistly-cleanup-active iframe[src*="googlesyndication"],
+.assistly-cleanup-active iframe[src*="adservice"],
+.assistly-cleanup-active iframe[src*="amazon-adsystem"] {
+  display: none !important;
+}
+
+/* Reduce notification badge prominence */
+.assistly-cleanup-active [class*="notification-count"],
+.assistly-cleanup-active [class*="badge-count"],
+.assistly-cleanup-active [class*="unread-count"] {
+  opacity: 0.3 !important;
+}

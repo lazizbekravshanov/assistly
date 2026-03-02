@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Dashboard — Assistly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/pages.css">
+</head>
+<body>
+  <div class="page-container">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="page-header-left">
+        <div class="page-logo">A</div>
+        <h1 class="page-title">Focus Dashboard</h1>
+        <span class="page-subtitle">This Week</span>
+      </div>
+      <button id="themeToggle" class="theme-btn">🌙</button>
+    </header>
+
+    <!-- Stats Row -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-box">
+        <div class="stat-icon accent">⏱</div>
+        <span class="stat-value" id="totalFocus">0h</span>
+        <span class="stat-label">Total Focus</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon danger">🚫</div>
+        <span class="stat-value" id="totalBlocked">0</span>
+        <span class="stat-label">Blocked</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon success">🔥</div>
+        <span class="stat-value" id="streak">0</span>
+        <span class="stat-label">Streak</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon purple">📊</div>
+        <span class="stat-value" id="avgSession">0m</span>
+        <span class="stat-label">Avg Session</span>
+      </div>
+    </div>
+
+    <!-- Weekly Chart -->
+    <div class="section chart-section">
+      <h2 class="section-title">Weekly Overview</h2>
+      <div class="chart" id="chart"></div>
+    </div>
+
+    <!-- Most Blocked -->
+    <div class="section blocked-section">
+      <h2 class="section-title">Most Blocked Sites</h2>
+      <div id="blockedList"></div>
+    </div>
+
+    <!-- Streak Calendar -->
+    <div class="section calendar-section">
+      <h2 class="section-title" id="calendarTitle">March 2026</h2>
+      <div class="calendar-grid" id="calendar"></div>
+    </div>
+
+    <p class="page-footer">Stay focused. The results compound over time.</p>
+  </div>
+
+  <script src="../scripts/dashboard.js"></script>
+</body>
+</html>

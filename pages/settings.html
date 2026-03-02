@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — Assistly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/pages.css">
+</head>
+<body>
+  <div class="page-container">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="page-header-left">
+        <div class="page-logo">A</div>
+        <h1 class="page-title">Settings</h1>
+      </div>
+      <button id="themeToggle" class="theme-btn">🌙</button>
+    </header>
+
+    <!-- Blocked Sites -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.08s both;">
+      <h2 class="section-title">
+        Blocked Sites
+        <span class="count-badge" id="activeBadge">0 active</span>
+      </h2>
+      <div class="input-row">
+        <input type="text" id="siteInput" placeholder="e.g. twitter.com" autocomplete="off">
+        <button class="add-btn" id="addBtn">+ Add</button>
+      </div>
+      <div id="siteList"></div>
+    </div>
+
+    <!-- Page Cleanup -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.16s both;">
+      <h2 class="section-title">Page Cleanup</h2>
+      <div class="cleanup-row">
+        <div class="cleanup-info">
+          <span class="cleanup-title">Auto-clean pages</span>
+          <span class="cleanup-desc">Hide distracting elements during focus sessions</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="cleanupToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="cleanup-tags" id="cleanupTags">
+        <span class="cleanup-tag">Ads & banners</span>
+        <span class="cleanup-tag">Sidebar feeds</span>
+        <span class="cleanup-tag">Recommendations</span>
+        <span class="cleanup-tag">Cookie popups</span>
+        <span class="cleanup-tag">Notification badges</span>
+        <span class="cleanup-tag">Auto-play videos</span>
+      </div>
+    </div>
+
+    <!-- Data -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.24s both;">
+      <h2 class="section-title">Data</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">This will permanently delete all focus statistics, streaks, and blocked site counts.</p>
+      <button class="danger-btn" id="resetBtn">Reset all statistics</button>
+    </div>
+
+    <p class="page-footer">Assistly — Focus & Deep Work</p>
+  </div>
+
+  <!-- Confirm Dialog -->
+  <div class="confirm-overlay hidden" id="confirmOverlay">
+    <div class="confirm-card">
+      <h3 class="confirm-title">Reset statistics?</h3>
+      <p class="confirm-msg">All focus time, streaks, and block counts will be permanently deleted. This cannot be undone.</p>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" id="confirmCancel">Cancel</button>
+        <button class="confirm-danger" id="confirmReset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/settings.js"></script>
+</body>
+</html>

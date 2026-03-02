@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blocked — Assistly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/blocked.css">
+</head>
+<body>
+  <div class="dot-grid"></div>
+
+  <main class="container">
+    <!-- Breathing circle -->
+    <div class="breathing-wrap">
+      <div class="breathing-ring ring-outer"></div>
+      <div class="breathing-ring ring-mid"></div>
+      <div class="breathing-circle"></div>
+    </div>
+
+    <h1 class="title">Not right now.</h1>
+    <p class="message" id="message"></p>
+    <p class="breathing-guide" id="breathingGuide">Breathe in... 4</p>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="goBackBtn">← Go back to work</button>
+      <button class="btn btn-secondary" id="breakBtn">Need 5 min break?</button>
+    </div>
+
+    <p class="footnote" id="footnote"></p>
+  </main>
+
+  <!-- Break overlay -->
+  <div class="break-overlay hidden" id="breakOverlay">
+    <div class="break-card">
+      <span class="break-emoji">☕</span>
+      <h2 class="break-title">Break time!</h2>
+      <div class="break-countdown" id="breakCountdown">5:00</div>
+      <button class="btn btn-secondary" id="endBreakBtn">End break early</button>
+    </div>
+  </div>
+
+  <script src="../scripts/blocked.js"></script>
+</body>
+</html>

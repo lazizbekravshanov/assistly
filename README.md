@@ -1,203 +1,70 @@
-# assistly 🦞
+# Assistly — Focus & Deep Work
 
-Assistly is a **single-owner social media AI assistant backend** that receives commands via OpenClaw webhook events and helps run content operations across:
-- Twitter (X)
-- Telegram
-- LinkedIn
+A Chrome extension that helps college students and remote workers enter deep work by blocking distracting websites, cleaning up allowed pages, tracking focus stats, and providing a Pomodoro timer.
 
-## What This App Really Does
+## Features
 
-Assistly is not just a chatbot. It is an execution engine for social media workflows:
-- Authenticates one real owner only
-- Accepts slash commands like `/post`, `/schedule`, `/analytics`, `/queue`
-- Applies policy checks before actions
-- Queues and retries failed posts with dead-letter handling
-- Logs actions for audit and security review
-- Protects against replay attacks and duplicate command execution
+- **Site Blocking** — Block distracting sites during focus sessions with a mindful redirect page
+- **Page Cleanup** — Automatically hide ads, sidebars, feeds, and popups on allowed sites
+- **Focus Stats** — Track daily focus time, blocked sites, and maintain streaks
+- **Pomodoro Timer** — Built-in timer with 25/45/60 minute presets
+- **Break System** — 5-minute breaks with countdown and auto-resume
+- **Dark Mode** — Full light/dark theme support
+- **Dashboard** — Weekly charts, most blocked sites, and streak calendar
+- **Zero Dependencies** — No frameworks, no npm, no build step. Just files Chrome loads directly.
 
-## Architecture
+## Install
 
-Assistly runs as two processes:
-
-| Process | Command | Purpose |
-|---------|---------|---------|
-| **API** | `npm run start:api` | HTTP webhook server, command parsing, immediate actions |
-| **Worker** | `npm run start:worker` | Queue processing, scheduled posts, retries |
-
-### Storage
-
-| Engine | Config | Use case |
-|--------|--------|----------|
-| **JSON** (default) | `STORAGE_ENGINE=json` | Single-instance, file-based persistence (`data/`) |
-| **PostgreSQL** | `STORAGE_ENGINE=postgres` | Multi-instance, durable deployments with connection pooling |
-
-## Core Capabilities
-
-- OpenClaw-style event envelope support
-- Webhook signature verification (HMAC-SHA256 + nonce + timestamp window)
-- Timing-safe token and signature comparison throughout
-- Session state and owner-only auth with configurable lockout policy
-- Approval gates for risky commands (`/delete`, `/edit`, `/post all`)
-- Idempotency protection (`channel + message_id + command`)
-- Content safety pre-checks (PII detection, prompt injection scanning)
-- Persistent queue/log/state with optional PostgreSQL mirror
-- Metrics and audit visibility (`/audit`, `/logs`, `/metrics`)
-- Alert webhooks for critical security and queue events
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `/post [platform\|all] [content]` | Publish immediately |
-| `/schedule [platform] [ISO time] [content]` | Schedule a post |
-| `/draft [topic]` | Generate platform-specific drafts |
-| `/approve [id]` | Approve a pending action |
-| `/reject [id]` | Reject a pending action |
-| `/delete [id]` | Remove a queue item |
-| `/queue [page] [pageSize]` | Browse the queue |
-| `/dlq [list\|replay] [id]` | Dead-letter queue operations |
-| `/status` | Queue and approval summary |
-| `/logs [limit] [offset]` | Query event logs |
-| `/audit` | Comprehensive audit view |
-| `/analytics [platform\|all] [period]` | Platform analytics |
-| `/session` | Show session info |
-| `/signoff` | End session |
-
-## Security Model
-
-- **Single-owner authority** (`OWNER_ID` + passphrase)
-- **Brute-force protection** — configurable lockout after failed attempts
-- **Timing-safe comparison** for all HMAC signatures and session tokens
-- **Prompt injection detection** — 10 pattern categories
-- **Content safety scanning** — email, phone, injection phrase detection
-- **Replay prevention** — nonce tracking with check-before-prune ordering
-- **Rate limiting** — per-IP fixed-window with TTL eviction (OOM-safe)
-- **Secret redaction** — 12 key patterns automatically redacted in logs
-- Optional strict webhook signature enforcement:
-  - `x-openclaw-timestamp`
-  - `x-openclaw-nonce`
-  - `x-openclaw-signature`
-
-## Endpoints
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `GET` | `/` | Status + metrics + versions |
-| `GET` | `/healthz` | Health check |
-| `GET` | `/readyz` | Readiness (queue status, worker lock) |
-| `GET` | `/metrics` | Prometheus-format metrics |
-| `POST` | `/webhook` | OpenClaw webhook handler |
+1. Clone or download this repository
+2. Open Chrome and go to `chrome://extensions`
+3. Enable **Developer mode** (toggle in top right)
+4. Click **Load unpacked**
+5. Select the `assistly` folder
+6. Pin the extension to your toolbar
 
 ## Project Structure
 
 ```
-src/
-  server.js                  HTTP webhook entrypoint
-  worker.js                  Background queue processor
-  bot.js                     Orchestration + auth + pipeline
-  commands.js                Command parsing and execution
-  config.js                  Config loader and validator
-  errors.js                  API error formatting
-  http/
-    rate_limiter.js           Per-IP rate limiting with TTL eviction
-    request_body.js           Streaming body parser
-    webhook_schema.js         Payload validation
-  security/
-    auth.js                   Session auth with configurable lockout
-    content.js                Content safety scanner
-    injection.js              Prompt injection detection
-    openclaw.js               Webhook signature + replay protection
-    policy.js                 Command policies and approval gates
-  platforms/
-    http.js                   Shared HTTP client with retry/backoff
-    twitter.js                Twitter API v2 client
-    telegram.js               Telegram Bot API client
-    linkedin.js               LinkedIn UGC API client
-  services/
-    alerts.js                 Alert webhook notifications
-    logger.js                 Event logging with secret redaction
-    queue.js                  Post scheduling and retry logic
-    state.js                  Session/approval/nonce/metrics state
-    store.js                  JSON file storage (atomic writes)
-    postgres_backend.js       PostgreSQL persistence layer
-    postgres_mirror.js        Async PostgreSQL mirroring
-config/
-  runtime_config.json         Runtime defaults
-migrations/
-  001_init_postgres.sql       PostgreSQL schema + indexes
+assistly/
+├── manifest.json           # Chrome extension manifest (MV3)
+├── icons/                  # Extension icons (16/32/48/128px)
+├── pages/
+│   ├── popup.html          # Extension popup (360px wide)
+│   ├── blocked.html        # Mindful blocked site page
+│   ├── dashboard.html      # Full-page stats dashboard
+│   └── settings.html       # Blocklist & cleanup settings
+├── scripts/
+│   ├── background.js       # Service worker (the brain)
+│   ├── popup.js            # Popup UI controller
+│   ├── blocked.js          # Blocked page controller
+│   ├── cleanup.js          # Content script for page cleanup
+│   ├── dashboard.js        # Dashboard controller
+│   └── settings.js         # Settings controller
+├── styles/
+│   ├── popup.css           # Popup styles
+│   ├── blocked.css         # Blocked page styles
+│   ├── pages.css           # Shared dashboard/settings styles
+│   └── cleanup.css         # Cleanup injection styles
+├── README.md
+├── LICENSE                 # MIT
+└── .gitignore
 ```
 
-## Setup
+## Tech Stack
 
-1. Copy `.env.example` to `.env` and configure:
+- Chrome Manifest V3
+- Vanilla JavaScript — zero dependencies
+- CSS Custom Properties — light/dark theme
+- Chrome APIs: `storage.local`, `alarms`, `tabs`, `webNavigation`, `notifications`
 
-```bash
-# Required
-OWNER_ID=your_user_id
-OWNER_PASSPHRASE=a-strong-passphrase
-OWNER_SESSION_SECRET=a-separate-secret
+## How It Works
 
-# Recommended for production
-OPENCLAW_WEBHOOK_SECRET=your-webhook-secret
-OPENCLAW_ENFORCE_SIGNATURE=true
+1. Toggle focus mode from the popup
+2. Distracting sites redirect to a mindful blocked page with breathing exercises
+3. Allowed pages get automatically cleaned up (ads, sidebars, feeds removed)
+4. Track your progress on the dashboard
+5. Manage your blocklist and settings from the settings page
 
-# Platform credentials (configure at least one)
-TWITTER_ACCESS_TOKEN=...
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHANNEL_ID=...
-LINKEDIN_ACCESS_TOKEN=...
-LINKEDIN_PROFILE_ID=...
+## License
 
-# Optional: PostgreSQL storage
-STORAGE_ENGINE=postgres
-DATABASE_URL=postgres://user:pass@host:5432/assistly
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. For PostgreSQL, run migrations:
-
-```bash
-npm run migrate:postgres
-```
-
-## Run
-
-```bash
-# Both API + worker (development)
-npm start
-
-# Separate processes (production)
-npm run start:api
-npm run start:worker
-```
-
-## OpenClaw Webhook Payload Example
-
-`POST /webhook`
-
-```json
-{
-  "user_id": "owner_user_1",
-  "channel": "telegram",
-  "thread_id": "thread-123",
-  "message_id": "msg-123",
-  "timestamp": "2026-02-17T12:00:00Z",
-  "locale": "en-US",
-  "timezone": "America/New_York",
-  "trace_id": "tr_external_1",
-  "text": "/status"
-}
-```
-
-## Test
-
-```bash
-npm test
-```
-
-30 tests covering auth, commands, webhook verification, rate limiting, schema validation, state retention, and worker locking.
+MIT — Lazizbek Ravshanov

@@ -1,8 +1,6 @@
-node_modules/
-data/
-.test-data/
-.env
-.env.local
-.env.production
-*.log
 .DS_Store
+node_modules/
+.vscode/
+*.zip
+*.crx
+*.pem
