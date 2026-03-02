@@ -273,7 +273,9 @@ function updatePomodoroDisplay() {
 }
 
 function updatePomodoroBtn() {
+  const locked = state.hardcoreMode && state.hardcoreLockUntil && Date.now() < state.hardcoreLockUntil;
   $("#pomodoroBtn").textContent = state.pomodoroRunning ? "Stop" : "Start";
+  $("#pomodoroBtn").disabled = !!(state.pomodoroRunning && locked);
 }
 
 function updatePresetHighlight() {
@@ -391,6 +393,8 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "pomodoroEnded") {
     state.pomodoroRunning = false;
     state.pomodoroEndTime = null;
+    state.hardcoreLockUntil = null;
     renderPomodoro();
+    renderFocus();
   }
 });

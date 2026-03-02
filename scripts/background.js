@@ -64,6 +64,32 @@ function domainMatches(hostname, blocked) {
   return hostname === blocked || hostname.endsWith("." + blocked);
 }
 
+/* ── Allowlist — never block learning & productivity platforms ── */
+
+const ALLOWED_DOMAINS = [
+  "chatgpt.com", "chat.openai.com", "openai.com",
+  "claude.ai", "anthropic.com",
+  "gemini.google.com", "bard.google.com",
+  "copilot.microsoft.com",
+  "perplexity.ai",
+  "github.com", "gitlab.com", "bitbucket.org",
+  "stackoverflow.com", "stackexchange.com",
+  "developer.mozilla.org", "docs.google.com",
+  "notion.so", "linear.app", "figma.com",
+  "coursera.org", "edx.org", "udemy.com", "khanacademy.org",
+  "leetcode.com", "hackerrank.com", "codewars.com",
+  "wikipedia.org", "scholar.google.com",
+  "w3schools.com", "freecodecamp.org",
+  "replit.com", "codepen.io", "codesandbox.io"
+];
+
+function isDomainAllowed(hostname) {
+  for (const allowed of ALLOWED_DOMAINS) {
+    if (hostname === allowed || hostname.endsWith("." + allowed)) return true;
+  }
+  return false;
+}
+
 function isBlockedUrl(url) {
   if (!url) return false;
   if (
@@ -100,6 +126,9 @@ async function checkAndBlock(tabId, url) {
 
   const hostname = stripDomain(url);
   if (!hostname) return;
+
+  // Never block learning & productivity platforms
+  if (isDomainAllowed(hostname)) return;
 
   for (const site of blocklist) {
     if (site.enabled && domainMatches(hostname, site.domain)) {
@@ -149,8 +178,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
     // Check daily goal completion
     const goal = state.focusGoal || 120;
-    if (s.dailyFocus[d] === goal) {
-      if (!s.goalsCompleted) s.goalsCompleted = {};
+    if (!s.goalsCompleted) s.goalsCompleted = {};
+    if (s.dailyFocus[d] >= goal && !s.goalsCompleted[d]) {
       s.goalsCompleted[d] = true;
     }
 
@@ -187,6 +216,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       await chrome.storage.local.set({ stats });
     }
     await chrome.storage.local.set({ state });
+    // Refresh badge now that pomodoro ended
+    if (state.focusActive) updateBadge(true);
 
     // Send notification
     chrome.notifications.create("pomodoroDone", {
@@ -445,6 +476,16 @@ function buildSessionSummary(state, stats) {
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "toggle-focus") {
     const result = await doToggleFocus();
+    if (result.locked) {
+      chrome.notifications.create("focusToggle", {
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("icons/icon-128.png"),
+        title: "Hardcore Mode Active",
+        message: "Focus is locked until the pomodoro ends.",
+        priority: 1
+      });
+      return;
+    }
     const active = result.state.focusActive;
     chrome.notifications.create("focusToggle", {
       type: "basic",
@@ -531,8 +572,13 @@ async function handleMessage(msg) {
     }
 
     case "stopPomodoro": {
+      // Hardcore mode: refuse stopping pomodoro while locked
+      if (s.hardcoreMode && s.hardcoreLockUntil && Date.now() < s.hardcoreLockUntil) {
+        return { state: s, locked: true };
+      }
       s.pomodoroRunning = false;
       s.pomodoroEndTime = null;
+      s.hardcoreLockUntil = null;
       chrome.alarms.clear("pomodoroEnd");
       await chrome.storage.local.set({ state: s });
       return { state: s };

@@ -26,9 +26,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Check if new tab is enabled
   const { state: s } = await chrome.storage.local.get("state");
   if (s && s.newTabEnabled === false) {
-    // Redirect to default chrome new tab
-    // Can't easily restore default, so show minimal page
-    document.body.innerHTML = "";
+    // Can't restore Chrome default new tab, so show a clean redirect
+    document.body.style.cssText = "display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui;color:#86868b;";
+    document.body.innerHTML = '<p>derot new tab is disabled. <a href="chrome://bookmarks" style="color:#5856d6;">Open bookmarks</a> or re-enable in <a href="' + chrome.runtime.getURL("pages/settings.html") + '" style="color:#5856d6;">settings</a>.</p>';
     return;
   }
 
