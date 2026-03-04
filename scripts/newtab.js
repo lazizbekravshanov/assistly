@@ -117,7 +117,14 @@ async function renderChallenges() {
   }
 }
 
-function renderQuote() {
+async function renderQuote() {
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "getAiInsight" });
+    if (res && res.insight && !res.fallback) {
+      $("#ntQuote").textContent = `"${res.insight}"`;
+      return;
+    }
+  } catch { /* fall through to random quote */ }
   $("#ntQuote").textContent = `"${QUOTES[Math.floor(Math.random() * QUOTES.length)]}"`;
 }
 

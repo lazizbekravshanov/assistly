@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderSites();
   renderGoalRing();
   renderRankBadge();
+  renderAiInsight();
   checkMilestone();
 
   startTick();
@@ -264,6 +265,18 @@ async function renderStats() {
       el.className = "stat-value " + (res.score < 40 ? "score-red" : res.score <= 70 ? "score-yellow" : "score-green");
     }
   } catch { /* ignore */ }
+}
+
+/* ── AI Insight ── */
+
+async function renderAiInsight() {
+  try {
+    const res = await msg({ type: "getAiInsight" });
+    if (res && res.insight && !res.fallback) {
+      $("#aiInsightText").textContent = res.insight;
+      $("#aiInsight").style.display = "";
+    }
+  } catch { /* AI unavailable — keep card hidden */ }
 }
 
 /* ── Pomodoro ── */

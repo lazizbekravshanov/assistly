@@ -206,7 +206,30 @@ function renderScoreTrend() {
 
 /* ── 6. Insights ── */
 
-function renderInsights() {
+async function renderInsights() {
+  const container = $("#insights");
+  const title = container.previousElementSibling;
+
+  // Show loading state
+  container.innerHTML = '<div class="insight-card"><span class="insight-icon">✨</span><span class="insight-text">Analyzing your focus patterns...</span></div>';
+
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "getAiInsights" });
+    if (res && res.insights && !res.fallback) {
+      container.innerHTML = res.insights.map(ins =>
+        `<div class="insight-card"><span class="insight-icon">${ins.icon}</span><span class="insight-text">${ins.text}</span></div>`
+      ).join("");
+      if (title && !title.querySelector(".ai-badge")) {
+        title.insertAdjacentHTML("beforeend", ' <span class="ai-badge">AI</span>');
+      }
+      return;
+    }
+  } catch { /* fall through to rule-based */ }
+
+  renderFallbackInsights();
+}
+
+function renderFallbackInsights() {
   const { siteTime, categories, weeklyScores } = data;
   const container = $("#insights");
   const insights = [];
@@ -246,7 +269,7 @@ function renderInsights() {
     insights.push({ icon: "🕐", text: `Peak distraction time: ${hour12} ${period}` });
   }
 
-  // Score trend vs last week (compare first half vs second half of scores)
+  // Score trend
   if (validScores.length >= 2) {
     const recent = validScores[validScores.length - 1].score;
     const earlier = validScores[0].score;

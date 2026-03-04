@@ -851,8 +851,132 @@ async function handleMessage(msg) {
       return { state: s };
     }
 
+    case "getAiInsight": {
+      return await generateAiInsight(st, s);
+    }
+
+    case "getAiInsights": {
+      return await generateAiInsights(st, s);
+    }
+
     default:
       return { error: "Unknown message type" };
+  }
+}
+
+/* ── AI Insights (Gemini Nano) ── */
+
+let aiInsightCache = { date: null, hour: null, insight: null, insights: null };
+
+function buildAiPromptData(stats, state) {
+  const d = today();
+  const siteTimeToday = stats.siteTime?.[d] || {};
+  const score = computeProductivityScore(siteTimeToday, stats.siteCategories);
+  const focusMins = stats.dailyFocus?.[d] || 0;
+  const goal = state.focusGoal || 120;
+  const streak = stats.currentStreak || 0;
+
+  // Top 8 sites with categories
+  const topSites = Object.entries(siteTimeToday)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([domain, mins]) => {
+      const cat = categorizeDomain(domain, stats.siteCategories);
+      return `${domain}:${mins}m(${cat})`;
+    })
+    .join(", ");
+
+  // Weekly scores
+  const days = getWeekDays();
+  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weeklyScores = days.map((dd, i) => {
+    const s = computeProductivityScore(stats.siteTime?.[dd], stats.siteCategories);
+    return `${dayNames[i]}=${s ?? "--"}`;
+  }).join(", ");
+
+  // Peak distraction hour
+  let peakHour = -1, peakVal = 0;
+  for (let h = 0; h < 24; h++) {
+    const key = d + "_" + String(h).padStart(2, "0");
+    const val = stats.hourlyBlocked?.[key] || 0;
+    if (val > peakVal) { peakVal = val; peakHour = h; }
+  }
+  const peakStr = peakHour >= 0 ? `Peak distraction hour: ${peakHour}:00 (${peakVal} blocks).` : "";
+
+  return `Score: ${score ?? "--"}/100. Streak: ${streak} days. Focus today: ${focusMins}m (goal: ${goal}m).\nTop sites: ${topSites || "none yet"}.\nWeekly scores: ${weeklyScores}.\n${peakStr}`;
+}
+
+async function generateAiInsight(stats, state) {
+  try {
+    const availability = await self.LanguageModel.availability();
+    if (availability !== "readily") return { insight: null, fallback: true };
+  } catch {
+    return { insight: null, fallback: true };
+  }
+
+  const now = new Date();
+  const cacheKey = today();
+  const cacheHour = now.getHours();
+  if (aiInsightCache.date === cacheKey && aiInsightCache.hour === cacheHour && aiInsightCache.insight) {
+    return { insight: aiInsightCache.insight };
+  }
+
+  try {
+    const session = await self.LanguageModel.create({
+      systemPrompt: "You are a concise productivity coach. Given the user's browsing data, give ONE specific, actionable insight in 2 sentences. Reference specific sites, times, or scores. Be encouraging but honest. Never be judgmental."
+    });
+    const promptData = buildAiPromptData(stats, state);
+    const result = await session.prompt(promptData);
+    session.destroy();
+
+    const insight = result.trim();
+    aiInsightCache.date = cacheKey;
+    aiInsightCache.hour = cacheHour;
+    aiInsightCache.insight = insight;
+    return { insight };
+  } catch {
+    return { insight: null, fallback: true };
+  }
+}
+
+async function generateAiInsights(stats, state) {
+  try {
+    const availability = await self.LanguageModel.availability();
+    if (availability !== "readily") return { insights: null, fallback: true };
+  } catch {
+    return { insights: null, fallback: true };
+  }
+
+  const now = new Date();
+  const cacheKey = today();
+  const cacheHour = now.getHours();
+  if (aiInsightCache.date === cacheKey && aiInsightCache.hour === cacheHour && aiInsightCache.insights) {
+    return { insights: aiInsightCache.insights };
+  }
+
+  try {
+    const session = await self.LanguageModel.create({
+      systemPrompt: 'You are a concise productivity coach. Given the user\'s browsing data, generate exactly 4 insights. Each should be 1-2 sentences, specific (mention sites/times/scores), and actionable. Return a JSON array: [{"icon":"emoji","text":"..."}]. Use these icons: \u{1F3C6} for achievements, \u{26A0}\u{FE0F} for warnings, \u{1F550} for time patterns, \u{1F4C8}/\u{1F4C9} for trends.'
+    });
+    const promptData = buildAiPromptData(stats, state);
+    const result = await session.prompt(promptData);
+    session.destroy();
+
+    // Parse JSON from response — handle markdown fences
+    let cleaned = result.trim();
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+    const insights = JSON.parse(cleaned);
+    if (Array.isArray(insights) && insights.length > 0) {
+      aiInsightCache.date = cacheKey;
+      aiInsightCache.hour = cacheHour;
+      aiInsightCache.insights = insights;
+      return { insights };
+    }
+    return { insights: null, fallback: true };
+  } catch {
+    return { insights: null, fallback: true };
   }
 }
 
