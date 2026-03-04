@@ -105,6 +105,17 @@ function isBlockedUrl(url) {
   return true;
 }
 
+/* ── Theme Broadcast ── */
+
+function broadcastTheme(theme) {
+  chrome.runtime.sendMessage({ type: "themeChanged", theme }).catch(() => {});
+  chrome.tabs.query({}, (tabs) => {
+    for (const tab of tabs) {
+      chrome.tabs.sendMessage(tab.id, { type: "themeChanged", theme }).catch(() => {});
+    }
+  });
+}
+
 /* ── Site Time Tracking ── */
 
 let activeTracking = { domain: null, startTime: null };
@@ -740,6 +751,9 @@ async function handleMessage(msg) {
     case "updateSettings": {
       Object.assign(s, msg.settings);
       await chrome.storage.local.set({ state: s });
+      if (msg.settings.theme) {
+        broadcastTheme(msg.settings.theme);
+      }
       return { state: s };
     }
 

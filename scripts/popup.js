@@ -428,4 +428,8 @@ chrome.runtime.onMessage.addListener((msg) => {
     renderPomodoro();
     renderFocus();
   }
+  if (msg.type === "themeChanged") {
+    state.theme = msg.theme;
+    applyTheme(msg.theme);
+  }
 });

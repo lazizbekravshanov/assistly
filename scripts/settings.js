@@ -276,3 +276,12 @@ $("#confirmOverlay").addEventListener("click", (e) => {
     $("#confirmOverlay").classList.add("hidden");
   }
 });
+
+/* ── Theme Sync ── */
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "themeChanged") {
+    state.theme = msg.theme;
+    applyTheme(msg.theme);
+  }
+});

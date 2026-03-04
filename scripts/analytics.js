@@ -288,3 +288,11 @@ function renderFallbackInsights() {
     `<div class="insight-card"><span class="insight-icon">${ins.icon}</span><span class="insight-text">${ins.text}</span></div>`
   ).join("");
 }
+
+/* ── Theme Sync ── */
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "themeChanged") {
+    applyTheme(msg.theme);
+  }
+});

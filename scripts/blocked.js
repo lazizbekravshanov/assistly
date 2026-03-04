@@ -147,4 +147,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     clearInterval(breakInterval);
     location.reload();
   }
+  if (msg.type === "themeChanged") {
+    document.body.setAttribute("data-theme", msg.theme);
+  }
 });

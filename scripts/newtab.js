@@ -128,6 +128,14 @@ async function renderQuote() {
   $("#ntQuote").textContent = `"${QUOTES[Math.floor(Math.random() * QUOTES.length)]}"`;
 }
 
+/* ── Theme Sync ── */
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "themeChanged") {
+    applyTheme(msg.theme);
+  }
+});
+
 async function renderScore() {
   try {
     const res = await chrome.runtime.sendMessage({ type: "getProductivityScore" });

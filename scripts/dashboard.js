@@ -327,3 +327,12 @@ async function renderChallenges() {
   $("#xpLabel").textContent = `${xp} XP`;
   $("#rankDisplay").textContent = rank;
 }
+
+/* ── Theme Sync ── */
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "themeChanged") {
+    state.theme = msg.theme;
+    applyTheme(msg.theme);
+  }
+});
